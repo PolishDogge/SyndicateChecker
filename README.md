@@ -30,16 +30,20 @@ Ready to deploy directly to **GitHub Pages** or open locally in any browser (`fi
   - `Instant Buyout Price`: Right-aligned cyan price for immediate standing liquidation.
   - `Sellers / Live Orders`: Center-aligned badge showing active sellers and online counts (`11 active (20 online)`).
   - `Actions`: Right-aligned "Whisper Instant Sell" button with fixed min-width to prevent squishing.
-- **Fixed Table Layout & Zero Text Wrapping**:
+- **Fixed Table Layout & Live Incremental Rendering**:
   - Uses fixed table layout with explicit column widths and `white-space: nowrap` on numerical/badge cells to ensure pixel-perfect alignment.
+  - Rows update incrementally in real time as each item's request completes, replacing pending indicators with live market values.
 - **Warframe Market API v2 Engine**:
   - Built natively on the active Warframe Market v2 orders endpoint.
-  - Enforced safe rate-limiting (minimum 350ms delay between items) to guarantee zero HTTP 429 errors.
-  - 15-minute per-syndicate caching with live countdown ticker and active-tab auto-refresh.
+  - Enforced safe rate-limiting (380ms delay between items) to guarantee zero HTTP 429 errors.
+  - Automatic 429 detection with 3-second backoff and retry banner.
+  - Network and CORS error handling with prominent alert banners.
+  - 15-minute per-syndicate caching (never caches incomplete or failed runs) with live countdown ticker and active-tab auto-refresh.
   - Real-time extraction of live in-game buyer usernames with strict prioritization (`ingame` > `online`). No mock data.
 - **One-Click In-Game Instant Sell Whisper**:
-  - Generates: `/w {buyer_ingame_name} Hello! I'd like to sell: [{Item Name}] for {highest_buy_plat} platinum.`
+  - Generates: `/w {buyer_ingame_name} Hi! I want to sell: [{Item Name}] for {highest_buy_plat} platinum. (warframe.market)`
   - Instant clipboard copy with visual "Copied!" checkmark feedback.
+  - Automatically disables with `"No active buyer"` when no valid buyers are online/in-game.
 
 ---
 
