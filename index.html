@@ -983,6 +983,81 @@
       box-shadow: none;
     }
 
+    /* Atragraph Filter Toggle Switch */
+    .toggle-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      user-select: none;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.35rem 0.65rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      transition: all 0.15s;
+    }
+
+    .toggle-group:hover {
+      border-color: var(--border-accent);
+      color: #fff;
+    }
+
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 32px;
+      height: 18px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
+    .toggle-switch .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border-color);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 9999px;
+    }
+
+    .toggle-switch .slider::before {
+      position: absolute;
+      content: "";
+      height: 12px;
+      width: 12px;
+      left: 2px;
+      bottom: 2px;
+      background-color: var(--text-dim);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 50%;
+    }
+
+    .toggle-switch input:checked + .slider {
+      background-color: rgba(0, 210, 255, 0.25);
+      border-color: var(--cyan-primary);
+    }
+
+    .toggle-switch input:checked + .slider::before {
+      transform: translateX(14px);
+      background-color: var(--cyan-primary);
+      box-shadow: 0 0 8px var(--cyan-glow);
+    }
+
+    .toggle-label {
+      white-space: nowrap;
+    }
+
     /* Settings Modal */
     .modal-backdrop {
       position: fixed;
@@ -1269,6 +1344,15 @@
           <button class="pill-btn" data-filter="weapon-aug">Weapon Augments (<span id="count-weapon-augs">0</span>)</button>
           <button class="pill-btn" data-filter="weapon">Weapons (<span id="count-weapons">0</span>)</button>
         </div>
+
+        <!-- Atragraph Filter Toggle (Exclude by default) -->
+        <label class="toggle-group" id="atragraph-toggle-wrap" title="Filter out special 1999 Atragraph signed cards and rank regular syndicate rewards only">
+          <span class="toggle-switch">
+            <input type="checkbox" id="toggle-exclude-atragraphs" checked>
+            <span class="slider"></span>
+          </span>
+          <span class="toggle-label">Exclude Atragraphs</span>
+        </label>
       </div>
 
       <!-- Data Table (Cleaned up columns with fixed layout) -->
@@ -1320,6 +1404,14 @@
           <option value="1000">1000 ms (Ultra Conservative)</option>
         </select>
       </div>
+      <div class="form-group">
+        <label class="form-label" for="setting-exclude-atragraphs">Atragraph Card Filter</label>
+        <div class="form-desc">Exclude special 1999 Atragraph signed cards and calculate prices using regular syndicate reward cards only.</div>
+        <select class="form-select" id="setting-exclude-atragraphs">
+          <option value="true" selected>Exclude Atragraphs (Recommended / Regular only)</option>
+          <option value="false">Include Atragraphs (Show all card subtypes)</option>
+        </select>
+      </div>
       <div class="modal-footer">
         <button class="btn" id="btn-clear-all-cache">Clear All Caches</button>
         <button class="btn btn-gold" id="btn-save-settings">Save & Close</button>
@@ -1351,9 +1443,11 @@
       searchQuery: '',
       sortColumn: 'sellRatio',
       sortAsc: false,
+      excludeAtragraphs: true,
       settings: {
         ttlMinutes: 15,
-        delayMs: 380
+        delayMs: 380,
+        excludeAtragraphs: true
       },
       countdownInterval: null
     };
@@ -1366,6 +1460,10 @@
           const parsed = JSON.parse(saved);
           STATE.settings.ttlMinutes = parsed.ttlMinutes || 15;
           STATE.settings.delayMs = Math.max(350, parsed.delayMs || 380);
+          if (parsed.excludeAtragraphs !== undefined) {
+            STATE.settings.excludeAtragraphs = parsed.excludeAtragraphs !== false;
+            STATE.excludeAtragraphs = STATE.settings.excludeAtragraphs;
+          }
         }
       } catch (e) {
         console.warn('Could not read settings from localStorage', e);
@@ -1490,6 +1588,9 @@
       const cached = getCachedSyndicateData(syndicateId);
       if (cached) {
         STATE.syndicateItems[syndicateId] = cached.items;
+        STATE.syndicateItems[syndicateId].forEach(it => {
+          if (it.rawOrders) applyItemMetrics(it);
+        });
         renderTable();
         updateSummaryMetrics();
         startCountdownTimer(cached.timestamp);
@@ -1514,6 +1615,7 @@
         buyerStatus: 'offline',
         ingameBuyers: 0,
         onlineBuyers: 0,
+        rawOrders: [],
         updatedAt: null,
         _scanned: false,
         _loading: true
@@ -1686,7 +1788,6 @@
       if (!item) return;
 
       item._loading = false;
-      const isMod = item.type.includes('Augment');
 
       let orders = [];
       if (rawJson && Array.isArray(rawJson.data)) {
@@ -1696,6 +1797,8 @@
       }
 
       if (!orders || orders.length === 0) {
+        item.rawOrders = [];
+        applyItemMetrics(item);
         item.updatedAt = Date.now();
         return;
       }
@@ -1709,12 +1812,33 @@
         const userStatus = (user.status || 'offline').toLowerCase();
         const platinum = typeof o.platinum === 'number' ? o.platinum : 0;
         const visible = o.visible !== false;
+        const subtype = (o.subtype || '').toLowerCase();
+        const isAtragraph = subtype.includes('atra');
 
-        return { orderType, rank, userName, userStatus, platinum, visible };
+        return { orderType, rank, userName, userStatus, platinum, visible, subtype, isAtragraph };
+      });
+
+      item.rawOrders = normalized;
+      applyItemMetrics(item);
+      item.updatedAt = Date.now();
+    }
+
+    function applyItemMetrics(item) {
+      if (!item.rawOrders) return;
+
+      const isMod = item.type.includes('Augment');
+      const excludeAtragraphs = STATE.excludeAtragraphs !== false;
+
+      // Filter based on visibility, mod rank 0, and atragraph flag
+      const validOrders = item.rawOrders.filter(o => {
+        if (!o.visible) return false;
+        if (isMod && o.rank !== 0) return false;
+        if (excludeAtragraphs && o.isAtragraph) return false;
+        return true;
       });
 
       // 1. BUY ORDERS (Instant Buyout to liquidate standing)
-      const buyOrders = normalized.filter(o => o.orderType === 'buy' && o.visible && (!isMod || o.rank === 0));
+      const buyOrders = validOrders.filter(o => o.orderType === 'buy');
       const ingameBuys = buyOrders.filter(o => o.userStatus === 'ingame');
       const onlineBuys = buyOrders.filter(o => o.userStatus === 'online');
 
@@ -1737,7 +1861,7 @@
       }
 
       // 2. SELL ORDERS (Lowest market sell listing)
-      const sellOrders = normalized.filter(o => o.orderType === 'sell' && o.visible && (!isMod || o.rank === 0));
+      const sellOrders = validOrders.filter(o => o.orderType === 'sell');
       const ingameSells = sellOrders.filter(o => o.userStatus === 'ingame');
       const onlineSells = sellOrders.filter(o => o.userStatus === 'online');
 
@@ -1758,8 +1882,32 @@
         item.sellRatio = null;
         item.sellStatus = 'offline';
       }
+    }
 
-      item.updatedAt = Date.now();
+    function setAtragraphFilter(exclude) {
+      STATE.excludeAtragraphs = !!exclude;
+      STATE.settings.excludeAtragraphs = !!exclude;
+      saveSettings();
+
+      const toggle = document.getElementById('toggle-exclude-atragraphs');
+      if (toggle) toggle.checked = STATE.excludeAtragraphs;
+
+      const settingSelect = document.getElementById('setting-exclude-atragraphs');
+      if (settingSelect) settingSelect.value = String(STATE.excludeAtragraphs);
+
+      // Recompute metrics for active syndicate items
+      if (STATE.currentSyndicate && STATE.syndicateItems[STATE.currentSyndicate]) {
+        const items = STATE.syndicateItems[STATE.currentSyndicate];
+        items.forEach(it => {
+          if (it.rawOrders) {
+            applyItemMetrics(it);
+          }
+        });
+        renderTable();
+        updateSummaryMetrics();
+      }
+
+      showToast(STATE.excludeAtragraphs ? 'Atragraph cards excluded (Regular only)' : 'Atragraph cards included');
     }
 
     /* ═══ Live Incremental Table Row DOM Update ════════════════════════════════ */
@@ -2275,11 +2423,22 @@
         });
       });
 
+      // Atragraph Filter Toggle (Toolbar)
+      const atraToggle = document.getElementById('toggle-exclude-atragraphs');
+      if (atraToggle) {
+        atraToggle.checked = STATE.excludeAtragraphs;
+        atraToggle.addEventListener('change', (e) => {
+          setAtragraphFilter(e.target.checked);
+        });
+      }
+
       // Settings Modal
       const modal = document.getElementById('settings-modal');
       document.getElementById('btn-open-settings').addEventListener('click', () => {
         document.getElementById('setting-ttl').value = STATE.settings.ttlMinutes;
         document.getElementById('setting-delay').value = STATE.settings.delayMs;
+        const setAtra = document.getElementById('setting-exclude-atragraphs');
+        if (setAtra) setAtra.value = String(STATE.settings.excludeAtragraphs !== false);
         modal.classList.add('open');
       });
 
@@ -2294,7 +2453,13 @@
       document.getElementById('btn-save-settings').addEventListener('click', () => {
         STATE.settings.ttlMinutes = parseInt(document.getElementById('setting-ttl').value, 10);
         STATE.settings.delayMs = Math.max(350, parseInt(document.getElementById('setting-delay').value, 10));
-        saveSettings();
+        const setAtra = document.getElementById('setting-exclude-atragraphs');
+        if (setAtra) {
+          const excludeVal = setAtra.value === 'true';
+          setAtragraphFilter(excludeVal);
+        } else {
+          saveSettings();
+        }
         modal.classList.remove('open');
         showToast('Settings saved successfully');
       });
@@ -2319,6 +2484,10 @@
     /* ═══ Initialize Application ══════════════════════════════════════════════ */
     function init() {
       loadSettings();
+      const atraToggle = document.getElementById('toggle-exclude-atragraphs');
+      if (atraToggle) {
+        atraToggle.checked = STATE.excludeAtragraphs !== false;
+      }
       initSyndicateSelector();
       bindEvents();
     }

@@ -40,6 +40,9 @@ Ready to deploy directly to **GitHub Pages** or open locally in any browser (`fi
   - Network and CORS error handling with prominent alert banners.
   - 15-minute per-syndicate caching (never caches incomplete or failed runs) with live countdown ticker and active-tab auto-refresh.
   - Real-time extraction of live in-game buyer usernames with strict prioritization (`ingame` > `online`). No mock data.
+- **Atragraph Card Filter (Exclude by Default)**:
+  - Filters out special Warframe 1999 signed collector cards (`subtype: 'atragraph'`) so pricing and cashout ratios are strictly based on standard rank 0 Syndicate reward cards.
+  - Interactive toolbar toggle switch and modal setting allow toggling on/off with instant zero-latency client-side re-calculation (no network re-fetch needed).
 - **One-Click In-Game Instant Sell Whisper**:
   - Generates: `/w {buyer_ingame_name} Hi! I want to sell: [{Item Name}] for {highest_buy_plat} platinum. (warframe.market)`
   - Instant clipboard copy with visual "Copied!" checkmark feedback.
@@ -73,7 +76,8 @@ Deploy to Vercel, Render, Railway, or any Node host with `npm start` for an alwa
 
 Click the gear icon in the top header to configure:
 - **Cache Expiration (TTL)**: 5, 10, 15 (default), or 30 minutes.
-- **Queue Throttle Delay**: 350ms (Safe / Recommended), 500ms, 750ms, or 1000ms.
+- **Queue Throttle Delay**: 380ms (Safe / Recommended), 500ms, 750ms, or 1000ms.
+- **Atragraph Card Filter**: Exclude Atragraphs (Recommended / Regular only) or Include Atragraphs.
 - **Clear All Caches**: One-click purge of all cached syndicate data.
 
 ---
