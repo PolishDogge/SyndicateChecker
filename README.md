@@ -8,41 +8,37 @@ Ready to deploy directly to **GitHub Pages** or open locally in any browser (`fi
 
 ## 🌟 Key Features
 
-- **All 6 Major Syndicates Supported**:
-  - Steel Meridian
-  - Arbiters of Hexis
-  - Cephalon Suda
-  - The Perrin Sequence
-  - Red Veil
-  - New Loka
-- **Curated High-Volume Catalog**:
-  - Over 210 verified items (35 items per syndicate: 3 syndicate weapons + 4 weapon augments + 28 warframe augments).
-  - Exact standing costs (25,000 for augments, 100,000 / 125,000 for weapons).
-  - Includes meta weapon augments like *Scattered Justice (Hek)*, *Winds of Purity (Furis)*, *Justice Blades (Dual Cleavers)*, *Gleaming Blight (Dark Dagger)*, etc.
-- **Dual Profit Tracking**:
-  - **Sell Listings (Market Price)**: Lowest sell price from in-game/online sellers.
-  - **Instant Buyout (Quick Cash)**: Highest instant buy offers from active buyers waiting in-game for immediate standing liquidation.
-- **Standing Efficiency Calculation**:
-  - Computes exact **Platinum per 1,000 Standing**:
-    $$\text{Ratio} = \frac{\text{Platinum Price}}{\frac{\text{Standing Cost}}{1,000}}$$
-  - Gold/emerald highlights for top-efficiency rewards.
-- **Rate-Limited Sequential Queue**:
-  - Warframe Market API limits requests to ~3/sec. The app enforces an async FIFO queue with a strict 350ms delay, animated progress bar, and real-time scanning status.
-- **Smart 15-Minute LocalStorage Cache**:
-  - Per-syndicate cache with live countdown timer.
-  - Auto-refreshes only when the countdown reaches 0 AND the tab is active.
-  - "Force Refresh" button to clear cache and re-scan anytime.
-- **One-Click Whisper Generator**:
-  - Buy whisper: `/w {seller_name} Hello, I'd like to buy {item_name} for {price} platinum.`
-  - Instant sell whisper: `/w {buyer_name} Hello, I'd like to sell {item_name} for {price} platinum.`
-  - Instant clipboard copying with visual "Copied!" feedback.
-- **Instant Search & Filtering**:
-  - Real-time search by mod name, weapon name, or warframe name.
-  - Filter pills for All, Augments, and Weapons.
-  - Multi-column sortable table (click any header to toggle ascending/descending).
-- **Orokin Dark Theme**:
-  - Sleek, high-performance UI styled after Warframe's Void and Orokin aesthetics, with signature accent colors for each syndicate.
-  - Zero external dependencies: no npm, no webpack, no external fonts or CDN stylesheets. 100% self-contained in a single `index.html`.
+- **Initial Empty State & On-Demand Scan**:
+  - Starts cleanly in standby with no pre-selected syndicate or automatic network fetches until you select a syndicate.
+  - Interactive faction cards reveal real-time intelligence for that specific syndicate.
+- **Full-Width Edge-to-Edge Canvas**:
+  - Responsive widescreen layout (`max-width: 1680px` with generous padding) that breathes naturally across standard and ultrawide displays.
+  - Dynamic flex/grid sizing with no clipped containers or overflowing text.
+- **High-Resolution Syndicate Emblems**:
+  - Beautiful, high-resolution transparent logos embedded for all six factions:
+    - **Steel Meridian** (Vanguard Red)
+    - **Arbiters of Hexis** (Justice Blue)
+    - **Cephalon Suda** (Knowledge Purple)
+    - **The Perrin Sequence** (Commerce Emerald)
+    - **Red Veil** (Purge Crimson)
+    - **New Loka** (Purity Green)
+- **Streamlined 7-Column Data Table**:
+  - `Item Name`: Left-aligned with subtle sub-badge (e.g. `[Ash] Warframe Mod`, `[Hek] Weapon Mod`, `Syndicate Weapon`).
+  - `Standing Cost`: Center-aligned, formatted with commas (`25,000`, `100,000`, `125,000`).
+  - `Lowest Sell`: Right-aligned with Platinum icon and monospace price.
+  - `Plat / 1k Standing`: Right-aligned with dynamic Orokin gold/emerald efficiency badges.
+  - `Instant Buyout Price`: Right-aligned cyan price for immediate standing liquidation.
+  - `Sellers / Live Orders`: Center-aligned badge showing active sellers and online counts (`11 active (20 online)`).
+  - `Actions`: Right-aligned "Whisper Buy" button with fixed min-width to prevent squishing.
+- **Fixed Table Layout & Zero Text Wrapping**:
+  - Uses fixed table layout with explicit column widths and `white-space: nowrap` on numerical/badge cells to ensure pixel-perfect alignment.
+- **Warframe Market API v2 Engine**:
+  - Built natively on the active Warframe Market v2 orders endpoint.
+  - Enforced safe rate-limiting (minimum 350ms delay between items) to guarantee zero HTTP 429 errors.
+  - 15-minute per-syndicate caching with live countdown ticker and active-tab auto-refresh.
+- **One-Click In-Game Whisper**:
+  - Generates: `/w {seller_name} Hello, I'd like to buy {item_name} for {price} platinum.`
+  - Instant clipboard copy with visual "Copied!" checkmark feedback.
 
 ---
 
@@ -65,13 +61,12 @@ python -m http.server 8080
 
 ---
 
-## ⚙️ Settings & API Configuration
+## ⚙️ Settings
 
 Click the gear icon in the top header to configure:
-- **Cache TTL**: 5, 10, 15 (default), or 30 minutes.
-- **Queue Delay**: 300ms, 350ms (default safe throttle), 500ms, or 1000ms.
-- **API Version**: `v2` (active endpoint) or `v1` (legacy).
-- **CORS Proxy**: Direct fetch by default, or enter a custom proxy URL template if required by your network environment.
+- **Cache Expiration (TTL)**: 5, 10, 15 (default), or 30 minutes.
+- **Queue Throttle Delay**: 350ms (Safe / Recommended), 500ms, 750ms, or 1000ms.
+- **Clear All Caches**: One-click purge of all cached syndicate data.
 
 ---
 
