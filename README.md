@@ -16,8 +16,9 @@ Ready to deploy directly to **GitHub Pages** or open locally in any browser (`fi
   - Red Veil
   - New Loka
 - **Curated High-Volume Catalog**:
-  - Over 186 verified items (~31 items per syndicate: 3 syndicate weapons + 28 top/meta augments).
+  - Over 210 verified items (35 items per syndicate: 3 syndicate weapons + 4 weapon augments + 28 warframe augments).
   - Exact standing costs (25,000 for augments, 100,000 / 125,000 for weapons).
+  - Includes meta weapon augments like *Scattered Justice (Hek)*, *Winds of Purity (Furis)*, *Justice Blades (Dual Cleavers)*, *Gleaming Blight (Dark Dagger)*, etc.
 - **Dual Profit Tracking**:
   - **Sell Listings (Market Price)**: Lowest sell price from in-game/online sellers.
   - **Instant Buyout (Quick Cash)**: Highest instant buy offers from active buyers waiting in-game for immediate standing liquidation.
