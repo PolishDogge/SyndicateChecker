@@ -115,11 +115,10 @@ class SyndicateHandler(http.server.SimpleHTTPRequestHandler):
 def run():
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(('', PORT), SyndicateHandler) as httpd:
-        print(f"\n======================================================")
-        print(f"⚔️  Warframe Syndicate Standing Optimizer")
-        print(f"🚀 Server running on: http://localhost:{PORT}")
-        print(f"🛡️  CORS Bypass Proxy: http://localhost:{PORT}/api/orders/:slug")
-        print(f"======================================================\n")
+        print("Warframe Syndicate Standing Optimizer")
+        print(f"Server running on: http://localhost:{PORT}")
+        print(f"CORS Proxy: http://localhost:{PORT}/api/orders/:slug")
+        print("======================================================\n")
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:

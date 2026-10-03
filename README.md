@@ -1,113 +1,106 @@
-# Warframe Syndicate Standing Optimizer ⚔️✨
+# Warframe Syndicate Standing Optimizer
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Warframe Market API v2](https://img.shields.io/badge/Warframe.Market-API%20v2-00d2ff.svg)](https://warframe.market)
-[![Zero Dependencies](https://img.shields.io/badge/Dependencies-Zero-success.svg)](package.json)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Warframe Market API](https://img.shields.io/badge/Warframe.Market-API-00d2ff.svg)](https://warframe.market)
+[![Dependencies](https://img.shields.io/badge/Dependencies-Zero-brightgreen.svg)](package.json)
 
-A standalone, zero-dependency web app that tracks and ranks live **Warframe Market** prices for Syndicate rewards to identify the most profitable items to cash out your standing into Platinum.
+A standalone web application that analyzes live Warframe.market order books for Syndicate offerings, helping players liquidate their standing into Platinum at peak efficiency.
 
-Ready to deploy directly to **GitHub Pages** or run locally in any browser with the included zero-dependency proxy servers (`server.js` or `server.py`).
-
----
-
-## 🌟 Key Features
-
-### 1. Strict Rank 0 / Unranked Filtering
-- **Mod Rank 0 Enforcement**:
-  - Syndicate standing redemptions award **Rank 0 (unranked)** mods only.
-  - Both buy (`order_type === 'buy'`) and sell (`order_type === 'sell'`) orders discard any mod listings where `order.rank !== 0` (or `mod_rank !== 0`).
-  - Completely disregards Rank 3 (max rank) buy listings so cashout ratios and "Whisper Instant Sell" messages never match against high-rank buy orders.
-- **Weapon Unranked Enforcement**:
-  - Syndicate weapons with earned affinity cannot be traded in Warframe. Weapon orders with rank > 0 are automatically discarded.
-- **Crossplay & Platform Filtering**:
-  - Select trading platform directly in the toolbar and settings:
-    - **Crossplay** (Default): Accepts orders from PC players as well as any player with `user.crossplay === true`.
-    - **PC Only**: Accepts orders from PC players.
-    - **PlayStation**: Accepts PlayStation (`ps4`/`ps5`) orders.
-    - **Xbox**: Accepts Xbox orders.
-  - Toggling platform recalculates all metrics instantly across active items without network re-fetching.
-
-### 2. Standing Liquidation Calculator
-- **Available Standing Input & Quick Presets**:
-  - Set your exact syndicate standing or click quick preset chips: `25,000`, `50,000`, `100,000`, `125,000`, or `Max (132k)`.
-- **Real-Time Unit & Platinum Projections**:
-  - **Affordable Units**: Each row computes `Math.floor(availableStanding / standingCost)` with an intuitive status badge (`4x affordable`).
-  - **Projected Platinum Yield**:
-    - Instant Buyout: Displays total instant Platinum yield (`Units * Instant Buyout Price`, e.g. `4x → 60p`).
-    - Lowest Sell: Displays total listing Platinum yield (`Units * Lowest Sell Price`).
-- **Dynamic Top Cashout Card**:
-  - Top Instant Cashout summary card projects your exact liquidatable Platinum yield based on currently entered standing (e.g. `Smoke Shadow • 60p total (4x @ 15p)`).
-
-### 3. Warframe 1999 "Atragraph" Card Filter
-- Filters out special signed collector editions (`subtype: 'atragraph'`) by default so prices reflect standard rank 0 Syndicate reward cards.
-- Interactive toolbar toggle switch `[✓] Exclude Atragraphs` and settings dropdown allow toggling on/off with zero-latency in-memory re-evaluation.
-
-### 4. One-Click In-Game Instant Sell Whisper
-- Targets the highest active in-game buyer (prioritizes `ingame` > `online`):
-  ```text
-  /w {buyer_ingame_name} Hi! I want to sell: [{Item Name}] for {highest_buy_plat} platinum. (warframe.market)
-  ```
-- Copies directly to clipboard with visual button animation ("Copied!" with checkmark).
-- Automatically disables with `"No active buyer"` when no qualifying buyers are online.
-
-### 5. Streamlined 7-Column Data Table & Incremental Scan
-- Displays: `Item Name`, `Standing Cost`, `Lowest Sell`, `Plat / 1k Standing`, `Instant Buyout`, `Sellers / Live Orders`, and `Actions`.
-- Live incremental row rendering: items update immediately as each API request completes.
-- Real-time search and category filtering (`All`, `Warframe Augments`, `Weapon Augments`, `Syndicate Weapons`).
-- Multi-column sort across all numeric and textual headers.
+The application runs entirely in the browser with zero build steps and includes zero-dependency local proxy servers for Node.js and Python to handle browser CORS requirements.
 
 ---
 
-## 🚀 Quick Start (Zero-CORS Setup)
+## Quick Start
 
-Because browser Same-Origin Policy (SOP) blocks frontend web apps from reading Warframe.market's API responses directly, two zero-dependency local proxy server options are included:
+Modern web browsers enforce Same-Origin Policy (SOP), which blocks frontend scripts from directly reading Warframe.market's API responses. Use either of the included zero-dependency servers to run the application locally.
 
-### Option 1: Node.js (Primary Server)
+### Option 1: Node.js (Primary)
+
+Requires Node.js 18 or later. Uses native standard library modules (`http`, `fs`, `path`, native `fetch`) with zero npm dependencies.
+
 ```bash
 npm start
 # or: node server.js
 ```
-- Built strictly on Node.js standard modules (`http`, `fs`, `path`, native `fetch`) with **zero npm dependencies**.
-- Serves static files on `process.env.PORT || 3000`.
-- Proxies `/api/orders/:slug` to Warframe Market API with required headers (`Platform: pc`, `Language: en`, `Accept: application/json`).
-- Includes a 15-minute in-memory cache to eliminate duplicate external requests.
 
-### Option 2: Python (Backup Server)
+Open `http://localhost:3000` in your web browser.
+
+### Option 2: Python (Backup)
+
+Requires Python 3.8 or later. Uses standard library modules (`http.server`, `urllib.request`, `socketserver`) with zero pip dependencies.
+
 ```bash
 python server.py
 ```
-- Built 100% on Python 3 standard library (`http.server`, `urllib.request`, `socketserver`) with **zero pip dependencies**.
-- Replicates identical static file serving, CORS headers, and `/api/orders/:slug` proxy routing.
 
-### Client Auto-Detection & Fallback
-The frontend in `index.html` automatically queries `/api/orders/:slug` on same-origin first, checks local port `3000` if opened via `file:///`, falls back to direct remote API calls, and presents a diagnostic alert banner if requests are blocked by browser CORS.
+Open `http://localhost:3000` in your web browser.
 
 ---
 
-## ⚙️ Settings
+## Core Features
 
-Click the gear icon in the top header to configure:
-- **Cache Expiration (TTL)**: 5, 10, 15 (default), or 30 minutes.
-- **Queue Throttle Delay**: 380ms (Safe / Recommended), 500ms, 750ms, or 1000ms.
-- **Trading Platform**: Crossplay (Default), PC Only, PlayStation, or Xbox.
-- **Atragraph Card Filter**: Exclude Atragraphs (Recommended) or Include Atragraphs.
-- **Clear All Caches**: One-click purge of all stored syndicate cache entries.
+### Realistic Quick Sale & Buyer Demand Capping
+- Quick sale projections accurately reflect the specific quantity requested by active buyers (`order.quantity`).
+- When a buyer orders 1 mod, the application caps instant sell calculations to 1 unit rather than multiplying your total affordable units against a single buyer's order.
+- Prevents players from purchasing excess inventory from syndicates when only a single buy order exists.
+- Summary cards and table badges indicate exact quantities wanted and market depth across active orders.
+
+### Strict Rank 0 Mod & Weapon Filtering
+- Syndicate standing rewards are Rank 0 (unranked) mods.
+- Discards all mod orders where rank is greater than 0, ensuring Rank 3 (max rank) listings do not inflate buyout prices or contaminate whisper messages.
+- Syndicate weapons with earned affinity are untradable in Warframe and are excluded from calculations.
+
+### Platform & Crossplay Filtering
+- Toggle trading platforms directly in the toolbar:
+  - Crossplay (Default): Includes PC orders and console players with crossplay enabled.
+  - PC Only: Filters strictly to PC players.
+  - PlayStation: Filters to PlayStation network orders.
+  - Xbox: Filters to Xbox network orders.
+- Filtering updates in real time without re-querying the Warframe.market API.
+
+### Standing Liquidation Calculator
+- Enter your available Syndicate standing or select a preset chip (25,000, 50,000, 100,000, 125,000, 132,000).
+- Displays affordable unit counts per item.
+- Calculates projected yields for both instant buyouts (real-time demand capped) and market listings.
+
+### One-Click In-Game Whisper
+- Generates standard Warframe trading whisper messages targeting active in-game buyers (prioritizing `ingame` over `online` status):
+  ```text
+  /w BuyerName Hi! I want to sell: [Item Name] for 15 platinum. (warframe.market)
+  ```
+- Automatically disables with "No active buyer" when no qualifying buyers are online.
+
+### Warframe 1999 Atragraph Card Filter
+- Filters out signed collector editions (`subtype: atragraph`) by default so displayed values reflect standard rank 0 reward cards.
+- Can be toggled on or off from the toolbar and settings panel.
 
 ---
 
-## 📄 License & Legal Notice
+## Settings
 
-This project is licensed under the **GNU General Public License v3.0 (GPLv3)**. See the [LICENSE](LICENSE) file for the full license text.
+Access the settings panel via the gear icon in the top header:
+- Cache Expiration: Configure order cache duration (5, 10, 15, or 30 minutes).
+- Request Throttle: Adjust sequential scan rate limit delay (380ms recommended, 500ms, 750ms, 1000ms).
+- Platform Selection: Default platform filter (Crossplay, PC, PlayStation, Xbox).
+- Atragraph Cards: Exclude or include Warframe 1999 collector editions.
+- Clear Cache: One-click cache flush to force fresh API queries.
 
-```text
-Warframe Syndicate Standing Optimizer
-Copyright (C) 2026 polishdogge
+---
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-```
+## Technical Specifications
 
-- Market data provided via the [Warframe.Market API](https://warframe.market).
-- Warframe and the Lotus logo are trademarks of Digital Extremes Ltd.
+- Frontend: Single-file static HTML5/CSS3/ES6+ with zero external frameworks or CDNs.
+- API Integration: Warframe.market API v1 and v2 order books.
+- Rate Limiting: Throttled sequential queue (380ms delay) with automatic HTTP 429 interception and backoff recovery.
+- Local Storage: Persists user preferences, available standing, and cached market orders across sessions.
+- License: GNU General Public License v3.0 (GPLv3).
+
+---
+
+## License
+
+Warframe Syndicate Standing Optimizer is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+See the [LICENSE](LICENSE) file for the full text.
+
+Warframe and the Lotus logo are trademarks of Digital Extremes Ltd. Market data is sourced via the public Warframe.market API.

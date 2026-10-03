@@ -140,9 +140,8 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`\n======================================================`);
-  console.log(`⚔️  Warframe Syndicate Standing Optimizer`);
-  console.log(`🚀 Server running on: http://localhost:${PORT}`);
-  console.log(`🛡️  CORS Bypass Proxy: http://localhost:${PORT}/api/orders/:slug`);
+  console.log(`Warframe Syndicate Standing Optimizer`);
+  console.log(`Server running on: http://localhost:${PORT}`);
+  console.log(`CORS Proxy: http://localhost:${PORT}/api/orders/:slug`);
   console.log(`======================================================\n`);
 });

@@ -1292,6 +1292,19 @@
       color: var(--gold-light);
     }
 
+    .buyer-demand-note {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      white-space: nowrap;
+      margin-top: 0.05rem;
+    }
+
+    .buyer-demand-note.limited {
+      color: var(--warning);
+    }
+
     /* Settings Modal */
     .modal-backdrop {
       position: fixed;
@@ -2115,11 +2128,13 @@
         const userPlatform = (user.platform || 'pc').toLowerCase();
         const userCrossplay = user.crossplay === true;
         const platinum = typeof o.platinum === 'number' ? o.platinum : 0;
+        const rawQty = (typeof o.quantity === 'number' && o.quantity > 0) ? Math.floor(o.quantity) : 1;
+        const quantity = rawQty >= 1 ? rawQty : 1;
         const visible = o.visible !== false;
         const subtype = (o.subtype || '').toLowerCase();
         const isAtragraph = subtype.includes('atra');
 
-        return { orderType, rank, userName, userStatus, userPlatform, userCrossplay, platinum, visible, subtype, isAtragraph };
+        return { orderType, rank, userName, userStatus, userPlatform, userCrossplay, platinum, quantity, visible, subtype, isAtragraph };
       });
 
       item.rawOrders = normalized;
@@ -2187,12 +2202,21 @@
         item.highestBuyPrice = chosenBuy.platinum;
         item.buyerName = chosenBuy.userName;
         item.buyerStatus = (ingameBuys.length > 0) ? 'ingame' : 'online';
+        item.buyerQuantity = chosenBuy.quantity || 1;
         item.buyRatio = parseFloat(((chosenBuy.platinum / item.standing) * 1000).toFixed(2));
+
+        item.totalBuyDemand = activeBuys.reduce((sum, o) => sum + (o.quantity || 1), 0);
+        item.activeBuyOrdersCount = activeBuys.length;
+        item.activeBuyOrders = activeBuys;
       } else {
         item.highestBuyPrice = null;
         item.buyerName = null;
         item.buyRatio = null;
         item.buyerStatus = 'offline';
+        item.buyerQuantity = 0;
+        item.totalBuyDemand = 0;
+        item.activeBuyOrdersCount = 0;
+        item.activeBuyOrders = [];
       }
 
       // 2. SELL ORDERS (Lowest market sell listing)
@@ -2217,6 +2241,62 @@
         item.sellRatio = null;
         item.sellStatus = 'offline';
       }
+    }
+
+    function getQuickSaleMetrics(item, availableStanding) {
+      if (!item || item.highestBuyPrice == null || !item.buyerName) {
+        return null;
+      }
+      const affordable = item.standing > 0 ? Math.floor(availableStanding / item.standing) : 0;
+      const buyerWants = item.buyerQuantity || 1;
+      const totalDemand = item.totalBuyDemand || buyerWants;
+      const activeCount = item.activeBuyOrdersCount || 1;
+
+      if (affordable <= 0) {
+        return {
+          affordable: 0,
+          buyerWants,
+          totalDemand,
+          activeCount,
+          sellableToTopBuyer: 0,
+          topBuyerPlat: 0,
+          bookFilledUnits: 0,
+          bookTotalPlat: 0,
+          hasExcessAffordable: false
+        };
+      }
+
+      // Sellable to top buyer (the one whispered)
+      const sellableToTopBuyer = Math.min(affordable, buyerWants);
+      const topBuyerPlat = sellableToTopBuyer * item.highestBuyPrice;
+
+      // Order book simulation across all active buyers (ingame > online)
+      let remaining = affordable;
+      let bookFilledUnits = 0;
+      let bookTotalPlat = 0;
+      const activeOrders = item.activeBuyOrders || [];
+      for (const o of activeOrders) {
+        if (remaining <= 0) break;
+        const q = o.quantity || 1;
+        const take = Math.min(remaining, q);
+        bookFilledUnits += take;
+        bookTotalPlat += take * o.platinum;
+        remaining -= take;
+      }
+
+      const hasExcessAffordable = affordable > buyerWants;
+
+      return {
+        affordable,
+        buyerWants,
+        totalDemand,
+        activeCount,
+        sellableToTopBuyer,
+        topBuyerPlat,
+        bookFilledUnits,
+        bookTotalPlat,
+        hasExcessAffordable
+      };
     }
 
     function setPlatformFilter(platform) {
@@ -2338,11 +2418,40 @@
 
       // Cell 4: Instant Buyout
       if (item.highestBuyPrice != null) {
+        const qs = getQuickSaleMetrics(item, avail);
+        let buyoutSubHtml = '';
+        if (qs && qs.affordable > 0) {
+          const sUnits = qs.sellableToTopBuyer;
+          const sPlat = qs.topBuyerPlat;
+
+          if (qs.hasExcessAffordable) {
+            const noteText = qs.totalDemand > qs.buyerWants
+              ? `buyer wants ${qs.buyerWants} (${qs.totalDemand} in market)`
+              : `buyer wants ${qs.buyerWants}`;
+            const tipText = `You afford ${qs.affordable}x, but top buyer (${item.buyerName}) only wants ${qs.buyerWants}x. Instant yield: ${sUnits} × ${item.highestBuyPrice}p = ${sPlat}p.${qs.totalDemand > qs.buyerWants ? ` Market total: ${qs.bookFilledUnits}x across ${qs.activeCount} buyers for ${qs.bookTotalPlat}p.` : ''}`;
+
+            buyoutSubHtml = `
+              <div class="projected-plat buyout" title="${escapeAttr(tipText)}">
+                <span>${sUnits}x → <strong>${sPlat}p</strong></span>
+                <span class="buyer-demand-note limited">${escapeHtml(noteText)}</span>
+              </div>
+            `;
+          } else {
+            const tipText = `${sUnits} unit(s) × ${item.highestBuyPrice}p = ${sPlat}p (buyer wants ${qs.buyerWants})`;
+            buyoutSubHtml = `
+              <div class="projected-plat buyout" title="${escapeAttr(tipText)}">
+                <span>${sUnits}x → <strong>${sPlat}p</strong></span>
+                ${qs.buyerWants > 1 ? `<span class="buyer-demand-note">buyer wants ${qs.buyerWants}</span>` : ''}
+              </div>
+            `;
+          }
+        }
+
         cells[4].innerHTML = `
           <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem;">
             <span class="plat-val" style="color: var(--cyan-primary)">${platIcon}${item.highestBuyPrice}</span>
             ${item.buyRatio != null ? `<span style="font-size: 0.7rem; color: var(--text-dim);">(${item.buyRatio.toFixed(2)} / 1k)</span>` : ''}
-            ${units > 0 ? `<span class="projected-plat buyout" title="${units} units × ${item.highestBuyPrice}p = ${units * item.highestBuyPrice}p">${units}x → <strong>${units * item.highestBuyPrice}p</strong></span>` : ''}
+            ${buyoutSubHtml}
           </div>
         `;
       } else {
@@ -2491,11 +2600,40 @@
 
         let buyoutCell = dash;
         if (item.highestBuyPrice != null) {
+          const qs = getQuickSaleMetrics(item, avail);
+          let buyoutSubHtml = '';
+          if (qs && qs.affordable > 0) {
+            const sUnits = qs.sellableToTopBuyer;
+            const sPlat = qs.topBuyerPlat;
+
+            if (qs.hasExcessAffordable) {
+              const noteText = qs.totalDemand > qs.buyerWants
+                ? `buyer wants ${qs.buyerWants} (${qs.totalDemand} in market)`
+                : `buyer wants ${qs.buyerWants}`;
+              const tipText = `You afford ${qs.affordable}x, but top buyer (${item.buyerName}) only wants ${qs.buyerWants}x. Instant yield: ${sUnits} × ${item.highestBuyPrice}p = ${sPlat}p.${qs.totalDemand > qs.buyerWants ? ` Market total: ${qs.bookFilledUnits}x across ${qs.activeCount} buyers for ${qs.bookTotalPlat}p.` : ''}`;
+
+              buyoutSubHtml = `
+                <div class="projected-plat buyout" title="${escapeAttr(tipText)}">
+                  <span>${sUnits}x → <strong>${sPlat}p</strong></span>
+                  <span class="buyer-demand-note limited">${escapeHtml(noteText)}</span>
+                </div>
+              `;
+            } else {
+              const tipText = `${sUnits} unit(s) × ${item.highestBuyPrice}p = ${sPlat}p (buyer wants ${qs.buyerWants})`;
+              buyoutSubHtml = `
+                <div class="projected-plat buyout" title="${escapeAttr(tipText)}">
+                  <span>${sUnits}x → <strong>${sPlat}p</strong></span>
+                  ${qs.buyerWants > 1 ? `<span class="buyer-demand-note">buyer wants ${qs.buyerWants}</span>` : ''}
+                </div>
+              `;
+            }
+          }
+
           buyoutCell = `
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem;">
               <span class="plat-val" style="color: var(--cyan-primary)">${platIcon}${item.highestBuyPrice}</span>
               ${item.buyRatio != null ? `<span style="font-size: 0.7rem; color: var(--text-dim);">(${item.buyRatio.toFixed(2)} / 1k)</span>` : ''}
-              ${units > 0 ? `<span class="projected-plat buyout" title="${units} units × ${item.highestBuyPrice}p = ${units * item.highestBuyPrice}p">${units}x → <strong>${units * item.highestBuyPrice}p</strong></span>` : ''}
+              ${buyoutSubHtml}
             </div>
           `;
         }
@@ -2570,15 +2708,22 @@
         document.getElementById('metric-top-buy-ratio').textContent = topBuy.buyRatio.toFixed(2);
 
         const avail = STATE.availableStanding || 0;
-        const topBuyUnits = topBuy.standing > 0 ? Math.floor(avail / topBuy.standing) : 0;
-        const topBuyTotalPlat = topBuyUnits * topBuy.highestBuyPrice;
+        const qs = getQuickSaleMetrics(topBuy, avail);
 
-        if (avail > 0 && topBuyUnits > 0) {
-          document.getElementById('metric-top-buy-name').textContent = `${topBuy.name} • ${topBuyTotalPlat}p total (${topBuyUnits}x @ ${topBuy.highestBuyPrice}p)`;
-        } else if (avail > 0 && topBuyUnits === 0) {
-          document.getElementById('metric-top-buy-name').textContent = `${topBuy.name} (${topBuy.highestBuyPrice}p) • Need ${(topBuy.standing - avail).toLocaleString()} more standing`;
+        if (avail > 0 && qs && qs.affordable > 0) {
+          if (qs.hasExcessAffordable) {
+            document.getElementById('metric-top-buy-name').textContent =
+              `${topBuy.name} • ${qs.topBuyerPlat}p (${qs.sellableToTopBuyer}x @ ${topBuy.highestBuyPrice}p • buyer wants ${qs.buyerWants})`;
+          } else {
+            document.getElementById('metric-top-buy-name').textContent =
+              `${topBuy.name} • ${qs.topBuyerPlat}p total (${qs.sellableToTopBuyer}x @ ${topBuy.highestBuyPrice}p)`;
+          }
+        } else if (avail > 0 && qs && qs.affordable === 0) {
+          document.getElementById('metric-top-buy-name').textContent =
+            `${topBuy.name} (${topBuy.highestBuyPrice}p) • Need ${(topBuy.standing - avail).toLocaleString()} more standing`;
         } else {
-          document.getElementById('metric-top-buy-name').textContent = `${topBuy.name} (${topBuy.highestBuyPrice}p)`;
+          document.getElementById('metric-top-buy-name').textContent =
+            `${topBuy.name} (${topBuy.highestBuyPrice}p • buyer wants ${topBuy.buyerQuantity || 1})`;
         }
       } else {
         document.getElementById('metric-top-buy-ratio').textContent = '--';
