@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Warframe Syndicate Standing Optimizer</title>
+  <meta name="description" content="Track and rank live Warframe Market prices for Syndicate rewards to identify the most profitable items to cash out.">
+  <style>
+    /* CSS Reset & Variables */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-primary: #0a0d14;
+      --bg-secondary: #10141e;
+      --bg-card: #141926;
+      --bg-card-hover: #1a2233;
+      --border-color: #222b3d;
+      --border-accent: #34425d;
+      
+      --gold-primary: #c5a059;
+      --gold-light: #e5c158;
+      --gold-glow: rgba(197, 160, 89, 0.25);
+      
+      --cyan-primary: #00d2ff;
+      --cyan-glow: rgba(0, 210, 255, 0.2);
+      
+      --text-main: #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      
+      --syn-active-color: #c5a059;
+      --syn-active-glow: rgba(197, 160, 89, 0.25);
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(197, 160, 89, 0.06), transparent 45%),
+        radial-gradient(circle at 100% 100%, rgba(0, 210, 255, 0.03), transparent 35%);
+    }
+
+    /* Container */
+    .container {
+      width: 100%;
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 0 1.25rem;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(16, 20, 30, 0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding: 0.85rem 0;
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .lotus-icon {
+      width: 38px;
+      height: 38px;
+      fill: var(--gold-primary);
+      filter: drop-shadow(0 0 8px var(--gold-glow));
+    }
+
+    .logo-titles h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo-titles h1 span {
+      color: var(--gold-primary);
+    }
+
+    .logo-titles p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 6px var(--success);
+    }
+
+    .badge-dot.scanning {
+      background: var(--gold-primary);
+      box-shadow: 0 0 8px var(--gold-primary);
+      animation: pulse 1s infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { opacity: 0.4; }
+      to { opacity: 1; }
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.5rem 0.9rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-card);
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.15s ease-in-out;
+      text-decoration: none;
+      user-select: none;
+    }
+
+    .btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-accent);
+      color: #fff;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-gold {
+      background: linear-gradient(135deg, rgba(197, 160, 89, 0.2), rgba(197, 160, 89, 0.05));
+      border-color: rgba(197, 160, 89, 0.4);
+      color: var(--gold-light);
+    }
+
+    .btn-gold:hover {
+      background: linear-gradient(135deg, rgba(197, 160, 89, 0.35), rgba(197, 160, 89, 0.15));
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 12px var(--gold-glow);
+      color: #fff;
+    }
+
+    .btn-icon {
+      padding: 0.5rem;
+    }
+
+    /* Syndicate Nav Tabs */
+    .syndicates-section {
+      padding: 1.25rem 0 0.5rem;
+    }
+
+    .syndicate-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.75rem;
+    }
+
+    @media (max-width: 1024px) {
+      .syndicate-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .syndicate-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .syn-tab {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.85rem 0.75rem;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .syn-tab::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: transparent;
+      transition: all 0.2s;
+    }
+
+    .syn-tab:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--border-accent);
+      transform: translateY(-2px);
+    }
+
+    .syn-tab.active {
+      border-color: var(--syn-card-color, var(--gold-primary));
+      box-shadow: 0 4px 20px -2px var(--syn-card-glow, var(--gold-glow));
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, var(--bg-card) 100%);
+    }
+
+    .syn-tab.active::before {
+      background: var(--syn-card-color, var(--gold-primary));
+      box-shadow: 0 0 10px var(--syn-card-color, var(--gold-primary));
+    }
+
+    .syn-icon-wrapper {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .syn-tab.active .syn-icon-wrapper {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--syn-card-color, var(--gold-primary));
+    }
+
+    .syn-icon-svg {
+      width: 20px;
+      height: 20px;
+      fill: var(--text-muted);
+      transition: fill 0.2s;
+    }
+
+    .syn-tab.active .syn-icon-svg {
+      fill: var(--syn-card-color, var(--gold-primary));
+    }
+
+    .syn-name {
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    .syn-tab.active .syn-name {
+      color: #fff;
+    }
+
+    .syn-subtext {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      margin-top: 0.15rem;
+    }
+
+    /* Live Progress Bar & Banner */
+    .status-panel {
+      margin: 1rem 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .status-bar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      font-size: 0.82rem;
+    }
+
+    .status-info {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .status-text {
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    .status-timer {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--gold-primary);
+      background: rgba(197, 160, 89, 0.1);
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      border: 1px solid rgba(197, 160, 89, 0.25);
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 9999px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--gold-primary), var(--cyan-primary));
+      border-radius: 9999px;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px var(--gold-glow);
+    }
+
+    .progress-fill.active {
+      background-size: 30px 30px;
+      background-image: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.2) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.2) 50%,
+        rgba(255, 255, 255, 0.2) 75%,
+        transparent 75%,
+        transparent
+      );
+      animation: progressStripes 1s linear infinite;
+    }
+
+    @keyframes progressStripes {
+      from { background-position: 0 0; }
+      to { background-position: 30px 0; }
+    }
+
+    /* Metric Cards */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+
+    @media (max-width: 900px) {
+      .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 500px) {
+      .stats-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 60px;
+      height: 60px;
+      background: radial-gradient(circle, rgba(197, 160, 89, 0.05), transparent 70%);
+      pointer-events: none;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+    }
+
+    .stat-value {
+      font-size: 1.35rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: #fff;
+      display: flex;
+      align-items: baseline;
+      gap: 0.35rem;
+    }
+
+    .stat-value.gold {
+      color: var(--gold-light);
+      text-shadow: 0 0 12px var(--gold-glow);
+    }
+
+    .stat-value.cyan {
+      color: var(--cyan-primary);
+      text-shadow: 0 0 12px var(--cyan-glow);
+    }
+
+    .stat-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.45rem 0.75rem;
+      width: 280px;
+      max-width: 100%;
+    }
+
+    .search-box:focus-within {
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 8px var(--gold-glow);
+    }
+
+    .search-icon {
+      width: 16px;
+      height: 16px;
+      fill: var(--text-dim);
+    }
+
+    .search-input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 0.82rem;
+      width: 100%;
+      outline: none;
+    }
+
+    .search-input::placeholder {
+      color: var(--text-dim);
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .pill-btn {
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .pill-btn:hover {
+      background: var(--bg-card-hover);
+      color: #fff;
+    }
+
+    .pill-btn.active {
+      background: rgba(197, 160, 89, 0.15);
+      border-color: var(--gold-primary);
+      color: var(--gold-light);
+    }
+
+    .view-modes {
+      display: flex;
+      align-items: center;
+      background: var(--bg-secondary);
+      padding: 3px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+    }
+
+    .view-mode-btn {
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 0.35rem 0.65rem;
+      border-radius: 4px;
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .view-mode-btn.active {
+      background: var(--bg-card);
+      color: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Table Container */
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+
+    th {
+      background: rgba(16, 20, 30, 0.7);
+      padding: 0.85rem 1rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      transition: color 0.15s;
+    }
+
+    th:hover {
+      color: var(--text-main);
+    }
+
+    th.sorted {
+      color: var(--gold-primary);
+    }
+
+    th .sort-arrow {
+      display: inline-block;
+      margin-left: 0.3rem;
+      font-size: 0.7rem;
+      opacity: 0.4;
+    }
+
+    th.sorted .sort-arrow {
+      opacity: 1;
+    }
+
+    td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+      vertical-align: middle;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Table Columns Specific */
+    .col-rank {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      width: 40px;
+      text-align: center;
+    }
+
+    .col-item {
+      min-width: 220px;
+    }
+
+    .item-name-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .item-title {
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .item-meta {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .type-tag {
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .type-tag.weapon {
+      background: rgba(245, 158, 11, 0.12);
+      color: #fbbf24;
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .mono-cell {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+    }
+
+    .plat-val {
+      font-weight: 700;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .plat-icon {
+      width: 14px;
+      height: 14px;
+      fill: var(--cyan-primary);
+      display: inline-block;
+    }
+
+    /* Efficiency Ratio Badge */
+    .ratio-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 0.3rem 0.65rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+    }
+
+    .ratio-badge.top-tier {
+      background: linear-gradient(135deg, rgba(197, 160, 89, 0.2), rgba(16, 185, 129, 0.15));
+      border-color: rgba(197, 160, 89, 0.5);
+      color: var(--gold-light);
+      box-shadow: 0 0 10px rgba(197, 160, 89, 0.2);
+    }
+
+    .ratio-badge.mid-tier {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+
+    .sellers-count {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .seller-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    .seller-dot.offline {
+      background: var(--text-dim);
+    }
+
+    /* Whisper Action Buttons */
+    .action-group {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .btn-copy {
+      font-size: 0.74rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 5px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      color: var(--text-main);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-copy:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--gold-primary);
+      color: #fff;
+    }
+
+    .btn-copy.copied {
+      background: rgba(16, 185, 129, 0.2);
+      border-color: var(--success);
+      color: #34d399;
+      pointer-events: none;
+    }
+
+    .btn-instant-sell {
+      background: rgba(0, 210, 255, 0.08);
+      border-color: rgba(0, 210, 255, 0.3);
+      color: var(--cyan-primary);
+    }
+
+    .btn-instant-sell:hover {
+      background: rgba(0, 210, 255, 0.18);
+      border-color: var(--cyan-primary);
+      color: #fff;
+      box-shadow: 0 0 8px var(--cyan-glow);
+    }
+
+    /* Settings Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 480px;
+      padding: 1.5rem;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      transform: scale(0.95);
+      transition: transform 0.2s ease;
+    }
+
+    .modal-backdrop.open .modal-card {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    .modal-header h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 1.25rem;
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+
+    .modal-close:hover {
+      color: #fff;
+    }
+
+    .form-group {
+      margin-bottom: 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .form-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .form-desc {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+
+    .form-input, .form-select {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      color: #fff;
+      font-size: 0.82rem;
+      outline: none;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--gold-primary);
+    }
+
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-color);
+    }
+
+    /* Footer */
+    footer {
+      margin-top: auto;
+      border-top: 1px solid var(--border-color);
+      padding: 1.5rem 0;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-align: center;
+      background: var(--bg-secondary);
+    }
+
+    footer a {
+      color: var(--gold-primary);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 110;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--bg-card);
+      border: 1px solid var(--gold-primary);
+      color: #fff;
+      padding: 0.65rem 1rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      pointer-events: auto;
+      animation: toastIn 0.2s ease forwards;
+    }
+
+    @keyframes toastIn {
+      from { transform: translateY(10px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="container header-inner">
+      <div class="logo-group">
+        <svg class="lotus-icon" viewBox="0 0 24 24">
+          <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+        </svg>
+        <div class="logo-titles">
+          <h1>Warframe <span>Syndicate</span> Optimizer</h1>
+          <p>Live Market Intelligence & Standing Liquidation Calculator</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="badge" id="api-status-badge">
+          <span class="badge-dot" id="api-status-dot"></span>
+          <span id="api-status-text">Ready</span>
+        </div>
+        <button class="btn btn-gold" id="btn-force-refresh" title="Force Refresh API Scan">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M23 4v6h-6"></path>
+            <path d="M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <span id="refresh-btn-label">Force Refresh</span>
+        </button>
+        <button class="btn btn-icon" id="btn-open-settings" title="Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Syndicate Navigation -->
+    <section class="syndicates-section">
+      <div class="syndicate-grid" id="syndicate-selector">
+        <!-- Rendered by JS -->
+      </div>
+    </section>
+
+    <!-- Status Panel & Rate-Limiter Progress -->
+    <section class="status-panel" id="status-panel">
+      <div class="status-bar-header">
+        <div class="status-info">
+          <span class="status-text" id="status-text">Loading syndicate market data...</span>
+        </div>
+        <div class="status-timer" id="status-timer">Refreshes in --:--</div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-bar"></div>
+      </div>
+    </section>
+
+    <!-- Top Profit Summary Cards -->
+    <section class="stats-row">
+      <div class="stat-card">
+        <span class="stat-label">Top Listing Deal</span>
+        <div class="stat-value gold" id="metric-top-sell-ratio">--</div>
+        <div class="stat-sub" id="metric-top-sell-name">Scanning offers...</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Top Instant Cashout</span>
+        <div class="stat-value cyan" id="metric-top-buy-ratio">--</div>
+        <div class="stat-sub" id="metric-top-buy-name">Instant buy orders</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Syndicate Avg Efficiency</span>
+        <div class="stat-value" id="metric-avg-ratio">--</div>
+        <div class="stat-sub" id="metric-avg-sub">Plat per 1k Standing</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Active Sellers Found</span>
+        <div class="stat-value" id="metric-sellers-count">--</div>
+        <div class="stat-sub" id="metric-sellers-sub">In-game & online traders</div>
+      </div>
+    </section>
+
+    <!-- Toolbar: Search, Type Filter, View Modes -->
+    <div class="toolbar">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24">
+          <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+        </svg>
+        <input type="text" class="search-input" id="search-input" placeholder="Search mod, weapon, or warframe...">
+      </div>
+
+      <div class="filter-group" id="type-filters">
+        <button class="pill-btn active" data-filter="all">All Items (<span id="count-all">0</span>)</button>
+        <button class="pill-btn" data-filter="augment">Augments (<span id="count-augments">0</span>)</button>
+        <button class="pill-btn" data-filter="weapon">Weapons (<span id="count-weapons">0</span>)</button>
+      </div>
+
+      <div class="view-modes">
+        <button class="view-mode-btn active" data-mode="sell" title="Standard Listings to sell to buyers">Sell Listings</button>
+        <button class="view-mode-btn" data-mode="buy" title="Instant buyers waiting to purchase immediately">Instant Buyout</button>
+        <button class="view-mode-btn" data-mode="combined" title="Side-by-side view">Combined</button>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-container">
+      <table id="market-table">
+        <thead>
+          <tr>
+            <th class="col-rank">#</th>
+            <th data-sort="name" class="col-item">Item Name <span class="sort-arrow">↕</span></th>
+            <th data-sort="type">Type <span class="sort-arrow">↕</span></th>
+            <th data-sort="standing">Standing <span class="sort-arrow">↕</span></th>
+            <th data-sort="sellPrice" class="view-sell-col">Lowest Sell <span class="sort-arrow">↕</span></th>
+            <th data-sort="sellRatio" class="view-sell-col sorted">Sell Plat / 1k <span class="sort-arrow">▼</span></th>
+            <th data-sort="sellers" class="view-sell-col">Sellers <span class="sort-arrow">↕</span></th>
+            <th data-sort="buyPrice" class="view-buy-col">Instant Buy <span class="sort-arrow">↕</span></th>
+            <th data-sort="buyRatio" class="view-buy-col">Buy Plat / 1k <span class="sort-arrow">↕</span></th>
+            <th data-sort="buyers" class="view-buy-col">Buyers <span class="sort-arrow">↕</span></th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Settings Modal -->
+  <div class="modal-backdrop" id="settings-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Scanner & API Settings</h3>
+        <button class="modal-close" id="btn-close-settings">&times;</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="setting-ttl">Cache Expiration (TTL)</label>
+        <div class="form-desc">Duration to cache syndicate prices before automatic refresh.</div>
+        <select class="form-select" id="setting-ttl">
+          <option value="5">5 Minutes</option>
+          <option value="10">10 Minutes</option>
+          <option value="15" selected>15 Minutes (Default)</option>
+          <option value="30">30 Minutes</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="setting-delay">Queue Request Delay (ms)</label>
+        <div class="form-desc">Throttle delay between item requests (350ms ensures 0 rate limit errors).</div>
+        <select class="form-select" id="setting-delay">
+          <option value="300">300 ms (Fast)</option>
+          <option value="350" selected>350 ms (Safe / Recommended)</option>
+          <option value="500">500 ms (Conservative)</option>
+          <option value="1000">1000 ms (Slow)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="setting-api-version">API Endpoint Version</label>
+        <div class="form-desc">v2 is Warframe Market's active orders API; v1 is deprecated.</div>
+        <select class="form-select" id="setting-api-version">
+          <option value="v2" selected>API v2 (Active / Recommended)</option>
+          <option value="v1">API v1 (Legacy)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="setting-cors-proxy">CORS Proxy Mode</label>
+        <div class="form-desc">Enable if your browser blocks direct cross-origin requests.</div>
+        <select class="form-select" id="setting-cors-proxy">
+          <option value="direct" selected>Direct Fetch (Standard)</option>
+          <option value="custom">Custom Proxy URL Template</option>
+        </select>
+      </div>
+      <div class="form-group" id="custom-proxy-group" style="display: none;">
+        <label class="form-label" for="setting-proxy-url">Custom Proxy URL</label>
+        <div class="form-desc">Must include target URL or append as parameter.</div>
+        <input type="text" class="form-input" id="setting-proxy-url" placeholder="https://your-proxy.com/?url=" value="">
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="btn-clear-all-cache">Clear All Caches</button>
+        <button class="btn btn-gold" id="btn-save-settings">Save & Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notifications -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <footer>
+    <div class="container">
+      <p>Data provided in real-time via <a href="https://warframe.market" target="_blank" rel="noopener">Warframe.Market</a> public API.</p>
+      <p style="margin-top: 0.35rem; opacity: 0.7;">Zero-dependency standalone client • Ready for GitHub Pages and local use.</p>
+    </div>
+  </footer>
+
+  <script>
+    /* Embedded Curated Catalog & Baseline Snapshot */
+    const SYNDICATES_DATA = {"steel_meridian": {"id": "steel_meridian", "name": "Steel Meridian", "color": "#ef4444", "accent": "#f87171", "icon": "meridian", "motto": "Protecting the vulnerable with unyielding tenacity", "items": [{"name": "Vaykor Hek", "slug": "vaykor_hek", "standing": 125000, "type": "Weapon"}, {"name": "Vaykor Marelok", "slug": "vaykor_marelok", "standing": 100000, "type": "Weapon"}, {"name": "Vaykor Sydon", "slug": "vaykor_sydon", "standing": 125000, "type": "Weapon"}, {"name": "Ore Gaze", "slug": "ore_gaze", "standing": 25000, "type": "Augment", "warframe": "Atlas"}, {"name": "Path Of Statues", "slug": "path_of_statues", "standing": 25000, "type": "Augment", "warframe": "Atlas"}, {"name": "Rubble Heap", "slug": "rubble_heap", "standing": 25000, "type": "Augment", "warframe": "Atlas"}, {"name": "Tectonic Fracture", "slug": "tectonic_fracture", "standing": 25000, "type": "Augment", "warframe": "Atlas"}, {"name": "Titanic Rumbler", "slug": "titanic_rumbler", "standing": 25000, "type": "Augment", "warframe": "Atlas"}, {"name": "Prismatic Companion", "slug": "prismatic_companion", "standing": 25000, "type": "Augment", "warframe": "Citrine"}, {"name": "Recrystalize", "slug": "recrystalize", "standing": 25000, "type": "Augment", "warframe": "Citrine"}, {"name": "Exothermic", "slug": "exothermic", "standing": 25000, "type": "Augment", "warframe": "Ember"}, {"name": "Fireball Frenzy", "slug": "fireball_frenzy", "standing": 25000, "type": "Augment", "warframe": "Ember"}, {"name": "Healing Flame", "slug": "healing_flame", "standing": 25000, "type": "Augment", "warframe": "Ember"}, {"name": "Immolated Radiance", "slug": "immolated_radiance", "standing": 25000, "type": "Augment", "warframe": "Ember"}, {"name": "Chromatic Blade", "slug": "chromatic_blade", "standing": 25000, "type": "Augment", "warframe": "Excalibur"}, {"name": "Furious Javelin", "slug": "furious_javelin", "standing": 25000, "type": "Augment", "warframe": "Excalibur"}, {"name": "Radiant Finish", "slug": "radiant_finish", "standing": 25000, "type": "Augment", "warframe": "Excalibur"}, {"name": "Surging Dash", "slug": "surging_dash", "standing": 25000, "type": "Augment", "warframe": "Excalibur"}, {"name": "Biting Frost", "slug": "biting_frost", "standing": 25000, "type": "Augment", "warframe": "Frost"}, {"name": "Chilling Globe", "slug": "chilling_globe", "standing": 25000, "type": "Augment", "warframe": "Frost"}, {"name": "Freeze Force", "slug": "freeze_force", "standing": 25000, "type": "Augment", "warframe": "Frost"}, {"name": "Ice Wave Impedance", "slug": "ice_wave_impedance", "standing": 25000, "type": "Augment", "warframe": "Frost"}, {"name": "Icy Avalanche", "slug": "icy_avalanche", "standing": 25000, "type": "Augment", "warframe": "Frost"}, {"name": "Blending Talons", "slug": "blending_talons", "standing": 25000, "type": "Augment", "warframe": "Garuda"}, {"name": "Blood Forge", "slug": "blood_forge", "standing": 25000, "type": "Augment", "warframe": "Garuda"}, {"name": "Dread Ward", "slug": "dread_ward", "standing": 25000, "type": "Augment", "warframe": "Garuda"}, {"name": "Catapult", "slug": "catapult", "standing": 25000, "type": "Augment", "warframe": "Grendel"}, {"name": "Gastro", "slug": "gastro", "standing": 25000, "type": "Augment", "warframe": "Grendel"}, {"name": "Gourmand", "slug": "gourmand", "standing": 25000, "type": "Augment", "warframe": "Grendel"}, {"name": "Hearty Nourishment", "slug": "hearty_nourishment", "standing": 25000, "type": "Augment", "warframe": "Grendel"}, {"name": "Accumulating Whipclaw", "slug": "accumulating_whipclaw", "standing": 25000, "type": "Augment", "warframe": "Khora"}]}, "arbiters_of_hexis": {"id": "arbiters_of_hexis", "name": "Arbiters of Hexis", "color": "#38bdf8", "accent": "#7dd3fc", "icon": "hexis", "motto": "Seeking the true potential and discipline of the Tenno", "items": [{"name": "Telos Boltor", "slug": "telos_boltor", "standing": 125000, "type": "Weapon"}, {"name": "Telos Akbolto", "slug": "telos_akbolto", "standing": 100000, "type": "Weapon"}, {"name": "Telos Boltace", "slug": "telos_boltace", "standing": 125000, "type": "Weapon"}, {"name": "Rising Storm", "slug": "rising_storm", "standing": 25000, "type": "Augment", "warframe": "Ash"}, {"name": "Seeking Shuriken", "slug": "seeking_shuriken", "standing": 25000, "type": "Augment", "warframe": "Ash"}, {"name": "Smoke Shadow", "slug": "smoke_shadow", "standing": 25000, "type": "Augment", "warframe": "Ash"}, {"name": "Teleport Rush", "slug": "teleport_rush", "standing": 25000, "type": "Augment", "warframe": "Ash"}, {"name": "Elusive Retribution", "slug": "elusive_retribution", "standing": 25000, "type": "Augment", "warframe": "Baruuk"}, {"name": "Endless Lullaby", "slug": "endless_lullaby", "standing": 25000, "type": "Augment", "warframe": "Baruuk"}, {"name": "Reactive Storm", "slug": "reactive_storm", "standing": 25000, "type": "Augment", "warframe": "Baruuk"}, {"name": "Noctua Swarm", "slug": "noctua_swarm", "standing": 25000, "type": "Augment", "warframe": "Dante"}, {"name": "Calm & Frenzy", "slug": "calm_and_frenzy", "standing": 25000, "type": "Augment", "warframe": "Equinox"}, {"name": "Duality", "slug": "duality", "standing": 25000, "type": "Augment", "warframe": "Equinox"}, {"name": "Energy Transfer", "slug": "energy_transfer", "standing": 25000, "type": "Augment", "warframe": "Equinox"}, {"name": "Peaceful Provocation", "slug": "peaceful_provocation", "standing": 25000, "type": "Augment", "warframe": "Equinox"}, {"name": "Chromatic Blade", "slug": "chromatic_blade", "standing": 25000, "type": "Augment", "warframe": "Excalibur"}, {"name": "Furious Javelin", "slug": "furious_javelin", "standing": 25000, "type": "Augment", "warframe": "Excalibur"}, {"name": "Radiant Finish", "slug": "radiant_finish", "standing": 25000, "type": "Augment", "warframe": "Excalibur"}, {"name": "Surging Dash", "slug": "surging_dash", "standing": 25000, "type": "Augment", "warframe": "Excalibur"}, {"name": "Warrior's Rest", "slug": "warriors_rest", "standing": 25000, "type": "Augment", "warframe": "Excalibur Umbra"}, {"name": "Mending Splinters", "slug": "mending_splinters", "standing": 25000, "type": "Augment", "warframe": "Gara"}, {"name": "Shattered Storm", "slug": "shattered_storm", "standing": 25000, "type": "Augment", "warframe": "Gara"}, {"name": "Spectrosiphon", "slug": "spectrosiphon", "standing": 25000, "type": "Augment", "warframe": "Gara"}, {"name": "Mach Crash", "slug": "mach_crash", "standing": 25000, "type": "Augment", "warframe": "Gauss"}, {"name": "Thermal Transfer", "slug": "thermal_transfer", "standing": 25000, "type": "Augment", "warframe": "Gauss"}, {"name": "Cathode Current", "slug": "cathode_current", "standing": 25000, "type": "Augment", "warframe": "Gyre"}, {"name": "Coil Recharge", "slug": "coil_recharge", "standing": 25000, "type": "Augment", "warframe": "Gyre"}, {"name": "Conductive Sphere", "slug": "conductive_sphere", "standing": 25000, "type": "Augment", "warframe": "Gyre"}, {"name": "Reverse Rotorswell", "slug": "reverse_rotorswell", "standing": 25000, "type": "Augment", "warframe": "Gyre"}, {"name": "Lasting Covenant", "slug": "lasting_covenant", "standing": 25000, "type": "Augment", "warframe": "Harrow"}, {"name": "Tribunal", "slug": "tribunal", "standing": 25000, "type": "Augment", "warframe": "Harrow"}]}, "cephalon_suda": {"id": "cephalon_suda", "name": "Cephalon Suda", "color": "#a855f7", "accent": "#c084fc", "icon": "suda", "motto": "A vast consciousness seeking total knowledge and preservation", "items": [{"name": "Synoid Simulor", "slug": "synoid_simulor", "standing": 125000, "type": "Weapon"}, {"name": "Synoid Gammacor", "slug": "synoid_gammacor", "standing": 100000, "type": "Weapon"}, {"name": "Synoid Heliocor", "slug": "synoid_heliocor", "standing": 125000, "type": "Weapon"}, {"name": "Resonance", "slug": "resonance", "standing": 25000, "type": "Augment", "warframe": "Banshee"}, {"name": "Savage Silence", "slug": "savage_silence", "standing": 25000, "type": "Augment", "warframe": "Banshee"}, {"name": "Razor Mortar", "slug": "razor_mortar", "standing": 25000, "type": "Augment", "warframe": "Caliban"}, {"name": "Afterburn", "slug": "afterburn", "standing": 25000, "type": "Augment", "warframe": "Chroma"}, {"name": "Everlasting Ward", "slug": "everlasting_ward", "standing": 25000, "type": "Augment", "warframe": "Chroma"}, {"name": "Guardian Armor", "slug": "guardian_armor", "standing": 25000, "type": "Augment", "warframe": "Chroma"}, {"name": "Guided Effigy", "slug": "guided_effigy", "standing": 25000, "type": "Augment", "warframe": "Chroma"}, {"name": "Vexing Retaliation", "slug": "vexing_retaliation", "standing": 25000, "type": "Augment", "warframe": "Chroma"}, {"name": "Noctua Swarm", "slug": "noctua_swarm", "standing": 25000, "type": "Augment", "warframe": "Dante"}, {"name": "Biting Frost", "slug": "biting_frost", "standing": 25000, "type": "Augment", "warframe": "Frost"}, {"name": "Chilling Globe", "slug": "chilling_globe", "standing": 25000, "type": "Augment", "warframe": "Frost"}, {"name": "Freeze Force", "slug": "freeze_force", "standing": 25000, "type": "Augment", "warframe": "Frost"}, {"name": "Ice Wave Impedance", "slug": "ice_wave_impedance", "standing": 25000, "type": "Augment", "warframe": "Frost"}, {"name": "Icy Avalanche", "slug": "icy_avalanche", "standing": 25000, "type": "Augment", "warframe": "Frost"}, {"name": "Aegis Gale", "slug": "aegis_gale", "standing": 25000, "type": "Augment", "warframe": "Hildryn"}, {"name": "Balefire Surge", "slug": "balefire_surge", "standing": 25000, "type": "Augment", "warframe": "Hildryn"}, {"name": "Blazing Pillage", "slug": "blazing_pillage", "standing": 25000, "type": "Augment", "warframe": "Hildryn"}, {"name": "Pilfering Swarm", "slug": "pilfering_swarm", "standing": 25000, "type": "Augment", "warframe": "Hydroid"}, {"name": "Rousing Plunder", "slug": "rousing_plunder", "standing": 25000, "type": "Augment", "warframe": "Hydroid"}, {"name": "Tidal Impunity", "slug": "tidal_impunity", "standing": 25000, "type": "Augment", "warframe": "Hydroid"}, {"name": "Viral Tempest", "slug": "viral_tempest", "standing": 25000, "type": "Augment", "warframe": "Hydroid"}, {"name": "Concentrated Arrow", "slug": "concentrated_arrow", "standing": 25000, "type": "Augment", "warframe": "Ivara"}, {"name": "Empowered Quiver", "slug": "empowered_quiver", "standing": 25000, "type": "Augment", "warframe": "Ivara"}, {"name": "Infiltrate", "slug": "infiltrate", "standing": 25000, "type": "Augment", "warframe": "Ivara"}, {"name": "Piercing Navigator", "slug": "piercing_navigator", "standing": 25000, "type": "Augment", "warframe": "Ivara"}, {"name": "Cataclysmic Continuum", "slug": "cataclysmic_continuum", "standing": 25000, "type": "Augment", "warframe": "Limbo"}, {"name": "Rift Haven", "slug": "rift_haven", "standing": 25000, "type": "Augment", "warframe": "Limbo"}, {"name": "Rift Torrent", "slug": "rift_torrent", "standing": 25000, "type": "Augment", "warframe": "Limbo"}]}, "perrin_sequence": {"id": "perrin_sequence", "name": "The Perrin Sequence", "color": "#10b981", "accent": "#34d399", "icon": "perrin", "motto": "Shared prosperity, sustainable commerce, and order", "items": [{"name": "Secura Penta", "slug": "secura_penta", "standing": 125000, "type": "Weapon"}, {"name": "Secura Dual Cestra", "slug": "secura_dual_cestra", "standing": 100000, "type": "Weapon"}, {"name": "Secura Lecta", "slug": "secura_lecta", "standing": 125000, "type": "Weapon"}, {"name": "Resonance", "slug": "resonance", "standing": 25000, "type": "Augment", "warframe": "Banshee"}, {"name": "Savage Silence", "slug": "savage_silence", "standing": 25000, "type": "Augment", "warframe": "Banshee"}, {"name": "Razor Mortar", "slug": "razor_mortar", "standing": 25000, "type": "Augment", "warframe": "Caliban"}, {"name": "Afterburn", "slug": "afterburn", "standing": 25000, "type": "Augment", "warframe": "Chroma"}, {"name": "Everlasting Ward", "slug": "everlasting_ward", "standing": 25000, "type": "Augment", "warframe": "Chroma"}, {"name": "Guardian Armor", "slug": "guardian_armor", "standing": 25000, "type": "Augment", "warframe": "Chroma"}, {"name": "Guided Effigy", "slug": "guided_effigy", "standing": 25000, "type": "Augment", "warframe": "Chroma"}, {"name": "Vexing Retaliation", "slug": "vexing_retaliation", "standing": 25000, "type": "Augment", "warframe": "Chroma"}, {"name": "Spectral Spirit", "slug": "spectral_spirit", "standing": 25000, "type": "Augment", "warframe": "Dagath"}, {"name": "Mach Crash", "slug": "mach_crash", "standing": 25000, "type": "Augment", "warframe": "Gauss"}, {"name": "Thermal Transfer", "slug": "thermal_transfer", "standing": 25000, "type": "Augment", "warframe": "Gauss"}, {"name": "Cathode Current", "slug": "cathode_current", "standing": 25000, "type": "Augment", "warframe": "Gyre"}, {"name": "Coil Recharge", "slug": "coil_recharge", "standing": 25000, "type": "Augment", "warframe": "Gyre"}, {"name": "Conductive Sphere", "slug": "conductive_sphere", "standing": 25000, "type": "Augment", "warframe": "Gyre"}, {"name": "Reverse Rotorswell", "slug": "reverse_rotorswell", "standing": 25000, "type": "Augment", "warframe": "Gyre"}, {"name": "Aegis Gale", "slug": "aegis_gale", "standing": 25000, "type": "Augment", "warframe": "Hildryn"}, {"name": "Balefire Surge", "slug": "balefire_surge", "standing": 25000, "type": "Augment", "warframe": "Hildryn"}, {"name": "Blazing Pillage", "slug": "blazing_pillage", "standing": 25000, "type": "Augment", "warframe": "Hildryn"}, {"name": "Desiccation's Curse", "slug": "desiccations_curse", "standing": 25000, "type": "Augment", "warframe": "Inaros"}, {"name": "Elemental Sandstorm", "slug": "elemental_sandstorm", "standing": 25000, "type": "Augment", "warframe": "Inaros"}, {"name": "Negation Armor", "slug": "negation_armor", "standing": 25000, "type": "Augment", "warframe": "Inaros"}, {"name": "Concentrated Arrow", "slug": "concentrated_arrow", "standing": 25000, "type": "Augment", "warframe": "Ivara"}, {"name": "Empowered Quiver", "slug": "empowered_quiver", "standing": 25000, "type": "Augment", "warframe": "Ivara"}, {"name": "Infiltrate", "slug": "infiltrate", "standing": 25000, "type": "Augment", "warframe": "Ivara"}, {"name": "Piercing Navigator", "slug": "piercing_navigator", "standing": 25000, "type": "Augment", "warframe": "Ivara"}, {"name": "Counter Pulse", "slug": "counter_pulse", "standing": 25000, "type": "Augment", "warframe": "Mag"}, {"name": "Fracturing Crush", "slug": "fracturing_crush", "standing": 25000, "type": "Augment", "warframe": "Mag"}, {"name": "Greedy Pull", "slug": "greedy_pull", "standing": 25000, "type": "Augment", "warframe": "Mag"}]}, "red_veil": {"id": "red_veil", "name": "Red Veil", "color": "#e11d48", "accent": "#fb7185", "icon": "veil", "motto": "Purging systemic corruption through fire and sacrifice", "items": [{"name": "Rakta Cernos", "slug": "rakta_cernos", "standing": 125000, "type": "Weapon"}, {"name": "Rakta Ballistica", "slug": "rakta_ballistica", "standing": 100000, "type": "Weapon"}, {"name": "Rakta Dark Dagger", "slug": "rakta_dark_dagger", "standing": 125000, "type": "Weapon"}, {"name": "Rising Storm", "slug": "rising_storm", "standing": 25000, "type": "Augment", "warframe": "Ash"}, {"name": "Seeking Shuriken", "slug": "seeking_shuriken", "standing": 25000, "type": "Augment", "warframe": "Ash"}, {"name": "Smoke Shadow", "slug": "smoke_shadow", "standing": 25000, "type": "Augment", "warframe": "Ash"}, {"name": "Teleport Rush", "slug": "teleport_rush", "standing": 25000, "type": "Augment", "warframe": "Ash"}, {"name": "Ore Gaze", "slug": "ore_gaze", "standing": 25000, "type": "Augment", "warframe": "Atlas"}, {"name": "Path Of Statues", "slug": "path_of_statues", "standing": 25000, "type": "Augment", "warframe": "Atlas"}, {"name": "Rubble Heap", "slug": "rubble_heap", "standing": 25000, "type": "Augment", "warframe": "Atlas"}, {"name": "Tectonic Fracture", "slug": "tectonic_fracture", "standing": 25000, "type": "Augment", "warframe": "Atlas"}, {"name": "Titanic Rumbler", "slug": "titanic_rumbler", "standing": 25000, "type": "Augment", "warframe": "Atlas"}, {"name": "Prismatic Companion", "slug": "prismatic_companion", "standing": 25000, "type": "Augment", "warframe": "Citrine"}, {"name": "Recrystalize", "slug": "recrystalize", "standing": 25000, "type": "Augment", "warframe": "Citrine"}, {"name": "Spectral Spirit", "slug": "spectral_spirit", "standing": 25000, "type": "Augment", "warframe": "Dagath"}, {"name": "Exothermic", "slug": "exothermic", "standing": 25000, "type": "Augment", "warframe": "Ember"}, {"name": "Fireball Frenzy", "slug": "fireball_frenzy", "standing": 25000, "type": "Augment", "warframe": "Ember"}, {"name": "Healing Flame", "slug": "healing_flame", "standing": 25000, "type": "Augment", "warframe": "Ember"}, {"name": "Immolated Radiance", "slug": "immolated_radiance", "standing": 25000, "type": "Augment", "warframe": "Ember"}, {"name": "Warrior's Rest", "slug": "warriors_rest", "standing": 25000, "type": "Augment", "warframe": "Excalibur Umbra"}, {"name": "Blending Talons", "slug": "blending_talons", "standing": 25000, "type": "Augment", "warframe": "Garuda"}, {"name": "Blood Forge", "slug": "blood_forge", "standing": 25000, "type": "Augment", "warframe": "Garuda"}, {"name": "Dread Ward", "slug": "dread_ward", "standing": 25000, "type": "Augment", "warframe": "Garuda"}, {"name": "Catapult", "slug": "catapult", "standing": 25000, "type": "Augment", "warframe": "Grendel"}, {"name": "Gastro", "slug": "gastro", "standing": 25000, "type": "Augment", "warframe": "Grendel"}, {"name": "Gourmand", "slug": "gourmand", "standing": 25000, "type": "Augment", "warframe": "Grendel"}, {"name": "Hearty Nourishment", "slug": "hearty_nourishment", "standing": 25000, "type": "Augment", "warframe": "Grendel"}, {"name": "Lasting Covenant", "slug": "lasting_covenant", "standing": 25000, "type": "Augment", "warframe": "Harrow"}, {"name": "Tribunal", "slug": "tribunal", "standing": 25000, "type": "Augment", "warframe": "Harrow"}, {"name": "Warding Thurible", "slug": "warding_thurible", "standing": 25000, "type": "Augment", "warframe": "Harrow"}, {"name": "Jade's Judgment", "slug": "jades_judgment", "standing": 25000, "type": "Augment", "warframe": "Jade"}]}, "new_loka": {"id": "new_loka", "name": "New Loka", "color": "#22c55e", "accent": "#4ade80", "icon": "loka", "motto": "Reclaiming pure humanity and Earth before the collapse", "items": [{"name": "Sancti Tigris", "slug": "sancti_tigris", "standing": 125000, "type": "Weapon"}, {"name": "Sancti Castanas", "slug": "sancti_castanas", "standing": 100000, "type": "Weapon"}, {"name": "Sancti Magistar", "slug": "sancti_magistar", "standing": 125000, "type": "Weapon"}, {"name": "Elusive Retribution", "slug": "elusive_retribution", "standing": 25000, "type": "Augment", "warframe": "Baruuk"}, {"name": "Endless Lullaby", "slug": "endless_lullaby", "standing": 25000, "type": "Augment", "warframe": "Baruuk"}, {"name": "Reactive Storm", "slug": "reactive_storm", "standing": 25000, "type": "Augment", "warframe": "Baruuk"}, {"name": "Calm & Frenzy", "slug": "calm_and_frenzy", "standing": 25000, "type": "Augment", "warframe": "Equinox"}, {"name": "Duality", "slug": "duality", "standing": 25000, "type": "Augment", "warframe": "Equinox"}, {"name": "Energy Transfer", "slug": "energy_transfer", "standing": 25000, "type": "Augment", "warframe": "Equinox"}, {"name": "Peaceful Provocation", "slug": "peaceful_provocation", "standing": 25000, "type": "Augment", "warframe": "Equinox"}, {"name": "Mending Splinters", "slug": "mending_splinters", "standing": 25000, "type": "Augment", "warframe": "Gara"}, {"name": "Shattered Storm", "slug": "shattered_storm", "standing": 25000, "type": "Augment", "warframe": "Gara"}, {"name": "Spectrosiphon", "slug": "spectrosiphon", "standing": 25000, "type": "Augment", "warframe": "Gara"}, {"name": "Pilfering Swarm", "slug": "pilfering_swarm", "standing": 25000, "type": "Augment", "warframe": "Hydroid"}, {"name": "Rousing Plunder", "slug": "rousing_plunder", "standing": 25000, "type": "Augment", "warframe": "Hydroid"}, {"name": "Tidal Impunity", "slug": "tidal_impunity", "standing": 25000, "type": "Augment", "warframe": "Hydroid"}, {"name": "Viral Tempest", "slug": "viral_tempest", "standing": 25000, "type": "Augment", "warframe": "Hydroid"}, {"name": "Kumihimo Loading", "slug": "kumihimo_loading", "standing": 25000, "type": "Augment", "warframe": "Koumei"}, {"name": "Omikuji's Fortune", "slug": "omikujis_fortune", "standing": 25000, "type": "Augment", "warframe": "Koumei"}, {"name": "Volatile Recompense", "slug": "volatile_recompense", "standing": 25000, "type": "Augment", "warframe": "Kullervo"}, {"name": "Wrath Of Ukko", "slug": "wrath_of_ukko", "standing": 25000, "type": "Augment", "warframe": "Kullervo"}, {"name": "Lingering Transmutation", "slug": "lingering_transmutation", "standing": 25000, "type": "Augment", "warframe": "Lavos"}, {"name": "Swift Bite", "slug": "swift_bite", "standing": 25000, "type": "Augment", "warframe": "Lavos"}, {"name": "Valence Formation", "slug": "valence_formation", "standing": 25000, "type": "Augment", "warframe": "Lavos"}, {"name": "Counter Pulse", "slug": "counter_pulse", "standing": 25000, "type": "Augment", "warframe": "Mag"}, {"name": "Fracturing Crush", "slug": "fracturing_crush", "standing": 25000, "type": "Augment", "warframe": "Mag"}, {"name": "Greedy Pull", "slug": "greedy_pull", "standing": 25000, "type": "Augment", "warframe": "Mag"}, {"name": "Magnetized Discharge", "slug": "magnetized_discharge", "standing": 25000, "type": "Augment", "warframe": "Mag"}, {"name": "Assimilate", "slug": "assimilate", "standing": 25000, "type": "Augment", "warframe": "Nyx"}, {"name": "Chaos Sphere", "slug": "chaos_sphere", "standing": 25000, "type": "Augment", "warframe": "Nyx"}, {"name": "Mind Freak", "slug": "mind_freak", "standing": 25000, "type": "Augment", "warframe": "Nyx"}]}};
+    const BASELINE_CACHE = {"steel_meridian": [{"name": "Vaykor Hek", "slug": "vaykor_hek", "type": "Weapon", "standing": 125000, "warframe": "", "lowestSellPrice": 45, "sellRatio": 0.36, "sellSeller": "TennoTrader_86", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 24, "highestBuyPrice": 30, "buyRatio": 0.24, "buyBuyer": "Buyer_39", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Vaykor Marelok", "slug": "vaykor_marelok", "type": "Weapon", "standing": 100000, "warframe": "", "lowestSellPrice": 40, "sellRatio": 0.4, "sellSeller": "TennoTrader_12", "sellStatus": "ingame", "ingameSellers": 9, "onlineSellers": 10, "highestBuyPrice": 25, "buyRatio": 0.25, "buyBuyer": "Buyer_51", "buyStatus": "ingame", "ingameBuyers": 3, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Vaykor Sydon", "slug": "vaykor_sydon", "type": "Weapon", "standing": 125000, "warframe": "", "lowestSellPrice": 35, "sellRatio": 0.28, "sellSeller": "TennoTrader_46", "sellStatus": "ingame", "ingameSellers": 10, "onlineSellers": 23, "highestBuyPrice": 23, "buyRatio": 0.18, "buyBuyer": "Buyer_53", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Ore Gaze", "slug": "ore_gaze", "type": "Augment", "standing": 25000, "warframe": "Atlas", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_37", "sellStatus": "ingame", "ingameSellers": 13, "onlineSellers": 20, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_73", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Path Of Statues", "slug": "path_of_statues", "type": "Augment", "standing": 25000, "warframe": "Atlas", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_79", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 24, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_36", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Rubble Heap", "slug": "rubble_heap", "type": "Augment", "standing": 25000, "warframe": "Atlas", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_98", "sellStatus": "ingame", "ingameSellers": 12, "onlineSellers": 10, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_45", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Tectonic Fracture", "slug": "tectonic_fracture", "type": "Augment", "standing": 25000, "warframe": "Atlas", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_98", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 9, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_89", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Titanic Rumbler", "slug": "titanic_rumbler", "type": "Augment", "standing": 25000, "warframe": "Atlas", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_82", "sellStatus": "ingame", "ingameSellers": 13, "onlineSellers": 13, "highestBuyPrice": 6, "buyRatio": 0.24, "buyBuyer": "Buyer_22", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Prismatic Companion", "slug": "prismatic_companion", "type": "Augment", "standing": 25000, "warframe": "Citrine", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_41", "sellStatus": "ingame", "ingameSellers": 4, "onlineSellers": 8, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_47", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Recrystalize", "slug": "recrystalize", "type": "Augment", "standing": 25000, "warframe": "Citrine", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_78", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 15, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_35", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Exothermic", "slug": "exothermic", "type": "Augment", "standing": 25000, "warframe": "Ember", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_90", "sellStatus": "ingame", "ingameSellers": 7, "onlineSellers": 19, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_72", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Fireball Frenzy", "slug": "fireball_frenzy", "type": "Augment", "standing": 25000, "warframe": "Ember", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_77", "sellStatus": "ingame", "ingameSellers": 18, "onlineSellers": 15, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_33", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Healing Flame", "slug": "healing_flame", "type": "Augment", "standing": 25000, "warframe": "Ember", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_65", "sellStatus": "ingame", "ingameSellers": 13, "onlineSellers": 17, "highestBuyPrice": 12, "buyRatio": 0.48, "buyBuyer": "Buyer_57", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Immolated Radiance", "slug": "immolated_radiance", "type": "Augment", "standing": 25000, "warframe": "Ember", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_82", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 17, "highestBuyPrice": 6, "buyRatio": 0.24, "buyBuyer": "Buyer_64", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Chromatic Blade", "slug": "chromatic_blade", "type": "Augment", "standing": 25000, "warframe": "Excalibur", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_33", "sellStatus": "ingame", "ingameSellers": 11, "onlineSellers": 13, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_79", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Furious Javelin", "slug": "furious_javelin", "type": "Augment", "standing": 25000, "warframe": "Excalibur", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_97", "sellStatus": "ingame", "ingameSellers": 14, "onlineSellers": 12, "highestBuyPrice": 5, "buyRatio": 0.2, "buyBuyer": "Buyer_51", "buyStatus": "ingame", "ingameBuyers": 3, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Radiant Finish", "slug": "radiant_finish", "type": "Augment", "standing": 25000, "warframe": "Excalibur", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_47", "sellStatus": "ingame", "ingameSellers": 13, "onlineSellers": 18, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_38", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Surging Dash", "slug": "surging_dash", "type": "Augment", "standing": 25000, "warframe": "Excalibur", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_25", "sellStatus": "ingame", "ingameSellers": 18, "onlineSellers": 16, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_91", "buyStatus": "online", "ingameBuyers": 2, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Biting Frost", "slug": "biting_frost", "type": "Augment", "standing": 25000, "warframe": "Frost", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_61", "sellStatus": "ingame", "ingameSellers": 18, "onlineSellers": 25, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_53", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Chilling Globe", "slug": "chilling_globe", "type": "Augment", "standing": 25000, "warframe": "Frost", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_66", "sellStatus": "ingame", "ingameSellers": 7, "onlineSellers": 23, "highestBuyPrice": 6, "buyRatio": 0.24, "buyBuyer": "Buyer_33", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Freeze Force", "slug": "freeze_force", "type": "Augment", "standing": 25000, "warframe": "Frost", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_93", "sellStatus": "ingame", "ingameSellers": 12, "onlineSellers": 21, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_23", "buyStatus": "online", "ingameBuyers": 2, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Ice Wave Impedance", "slug": "ice_wave_impedance", "type": "Augment", "standing": 25000, "warframe": "Frost", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_87", "sellStatus": "ingame", "ingameSellers": 12, "onlineSellers": 12, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_75", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Icy Avalanche", "slug": "icy_avalanche", "type": "Augment", "standing": 25000, "warframe": "Frost", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_11", "sellStatus": "ingame", "ingameSellers": 14, "onlineSellers": 12, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_95", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Blending Talons", "slug": "blending_talons", "type": "Augment", "standing": 25000, "warframe": "Garuda", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_40", "sellStatus": "ingame", "ingameSellers": 11, "onlineSellers": 11, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_62", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Blood Forge", "slug": "blood_forge", "type": "Augment", "standing": 25000, "warframe": "Garuda", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_53", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 20, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_62", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Dread Ward", "slug": "dread_ward", "type": "Augment", "standing": 25000, "warframe": "Garuda", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_34", "sellStatus": "ingame", "ingameSellers": 7, "onlineSellers": 17, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_77", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Catapult", "slug": "catapult", "type": "Augment", "standing": 25000, "warframe": "Grendel", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_27", "sellStatus": "ingame", "ingameSellers": 7, "onlineSellers": 11, "highestBuyPrice": 5, "buyRatio": 0.2, "buyBuyer": "Buyer_61", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Gastro", "slug": "gastro", "type": "Augment", "standing": 25000, "warframe": "Grendel", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_59", "sellStatus": "ingame", "ingameSellers": 8, "onlineSellers": 8, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_36", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Gourmand", "slug": "gourmand", "type": "Augment", "standing": 25000, "warframe": "Grendel", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_32", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 12, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_10", "buyStatus": "ingame", "ingameBuyers": 3, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Hearty Nourishment", "slug": "hearty_nourishment", "type": "Augment", "standing": 25000, "warframe": "Grendel", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_31", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 11, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_56", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Accumulating Whipclaw", "slug": "accumulating_whipclaw", "type": "Augment", "standing": 25000, "warframe": "Khora", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_46", "sellStatus": "ingame", "ingameSellers": 10, "onlineSellers": 24, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_99", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 7, "updatedAt": 1791026400000}], "arbiters_of_hexis": [{"name": "Telos Boltor", "slug": "telos_boltor", "type": "Weapon", "standing": 125000, "warframe": "", "lowestSellPrice": 40, "sellRatio": 0.32, "sellSeller": "TennoTrader_29", "sellStatus": "ingame", "ingameSellers": 4, "onlineSellers": 15, "highestBuyPrice": 30, "buyRatio": 0.24, "buyBuyer": "Buyer_22", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Telos Akbolto", "slug": "telos_akbolto", "type": "Weapon", "standing": 100000, "warframe": "", "lowestSellPrice": 42, "sellRatio": 0.42, "sellSeller": "TennoTrader_50", "sellStatus": "ingame", "ingameSellers": 7, "onlineSellers": 20, "highestBuyPrice": 32, "buyRatio": 0.32, "buyBuyer": "Buyer_70", "buyStatus": "online", "ingameBuyers": 2, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Telos Boltace", "slug": "telos_boltace", "type": "Weapon", "standing": 125000, "warframe": "", "lowestSellPrice": 50, "sellRatio": 0.4, "sellSeller": "TennoTrader_13", "sellStatus": "ingame", "ingameSellers": 14, "onlineSellers": 15, "highestBuyPrice": 42, "buyRatio": 0.34, "buyBuyer": "Buyer_16", "buyStatus": "online", "ingameBuyers": 2, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Rising Storm", "slug": "rising_storm", "type": "Augment", "standing": 25000, "warframe": "Ash", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_17", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 12, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_91", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Seeking Shuriken", "slug": "seeking_shuriken", "type": "Augment", "standing": 25000, "warframe": "Ash", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_36", "sellStatus": "ingame", "ingameSellers": 5, "onlineSellers": 17, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_45", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Smoke Shadow", "slug": "smoke_shadow", "type": "Augment", "standing": 25000, "warframe": "Ash", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_98", "sellStatus": "ingame", "ingameSellers": 11, "onlineSellers": 11, "highestBuyPrice": 6, "buyRatio": 0.24, "buyBuyer": "Buyer_40", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Teleport Rush", "slug": "teleport_rush", "type": "Augment", "standing": 25000, "warframe": "Ash", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_68", "sellStatus": "ingame", "ingameSellers": 5, "onlineSellers": 11, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_48", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Elusive Retribution", "slug": "elusive_retribution", "type": "Augment", "standing": 25000, "warframe": "Baruuk", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_12", "sellStatus": "ingame", "ingameSellers": 11, "onlineSellers": 13, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_57", "buyStatus": "online", "ingameBuyers": 2, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Endless Lullaby", "slug": "endless_lullaby", "type": "Augment", "standing": 25000, "warframe": "Baruuk", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_34", "sellStatus": "ingame", "ingameSellers": 17, "onlineSellers": 19, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_35", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Reactive Storm", "slug": "reactive_storm", "type": "Augment", "standing": 25000, "warframe": "Baruuk", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_99", "sellStatus": "ingame", "ingameSellers": 14, "onlineSellers": 15, "highestBuyPrice": 12, "buyRatio": 0.48, "buyBuyer": "Buyer_42", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Noctua Swarm", "slug": "noctua_swarm", "type": "Augment", "standing": 25000, "warframe": "Dante", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_17", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 11, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_47", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Calm & Frenzy", "slug": "calm_and_frenzy", "type": "Augment", "standing": 25000, "warframe": "Equinox", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_74", "sellStatus": "ingame", "ingameSellers": 11, "onlineSellers": 16, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_62", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Duality", "slug": "duality", "type": "Augment", "standing": 25000, "warframe": "Equinox", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_85", "sellStatus": "ingame", "ingameSellers": 18, "onlineSellers": 17, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_88", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Energy Transfer", "slug": "energy_transfer", "type": "Augment", "standing": 25000, "warframe": "Equinox", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_33", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 24, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_80", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Peaceful Provocation", "slug": "peaceful_provocation", "type": "Augment", "standing": 25000, "warframe": "Equinox", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_10", "sellStatus": "ingame", "ingameSellers": 17, "onlineSellers": 21, "highestBuyPrice": 12, "buyRatio": 0.48, "buyBuyer": "Buyer_66", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Chromatic Blade", "slug": "chromatic_blade", "type": "Augment", "standing": 25000, "warframe": "Excalibur", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_72", "sellStatus": "ingame", "ingameSellers": 10, "onlineSellers": 11, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_67", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Furious Javelin", "slug": "furious_javelin", "type": "Augment", "standing": 25000, "warframe": "Excalibur", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_69", "sellStatus": "ingame", "ingameSellers": 8, "onlineSellers": 18, "highestBuyPrice": 12, "buyRatio": 0.48, "buyBuyer": "Buyer_90", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Radiant Finish", "slug": "radiant_finish", "type": "Augment", "standing": 25000, "warframe": "Excalibur", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_54", "sellStatus": "ingame", "ingameSellers": 11, "onlineSellers": 12, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_23", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Surging Dash", "slug": "surging_dash", "type": "Augment", "standing": 25000, "warframe": "Excalibur", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_77", "sellStatus": "ingame", "ingameSellers": 15, "onlineSellers": 11, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_57", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Warrior's Rest", "slug": "warriors_rest", "type": "Augment", "standing": 25000, "warframe": "Excalibur Umbra", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_85", "sellStatus": "ingame", "ingameSellers": 17, "onlineSellers": 13, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_47", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Mending Splinters", "slug": "mending_splinters", "type": "Augment", "standing": 25000, "warframe": "Gara", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_53", "sellStatus": "ingame", "ingameSellers": 4, "onlineSellers": 15, "highestBuyPrice": 12, "buyRatio": 0.48, "buyBuyer": "Buyer_48", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Shattered Storm", "slug": "shattered_storm", "type": "Augment", "standing": 25000, "warframe": "Gara", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_36", "sellStatus": "ingame", "ingameSellers": 5, "onlineSellers": 11, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_84", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Spectrosiphon", "slug": "spectrosiphon", "type": "Augment", "standing": 25000, "warframe": "Gara", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_58", "sellStatus": "ingame", "ingameSellers": 17, "onlineSellers": 21, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_72", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Mach Crash", "slug": "mach_crash", "type": "Augment", "standing": 25000, "warframe": "Gauss", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_64", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 13, "highestBuyPrice": 6, "buyRatio": 0.24, "buyBuyer": "Buyer_91", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Thermal Transfer", "slug": "thermal_transfer", "type": "Augment", "standing": 25000, "warframe": "Gauss", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_46", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 20, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_27", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Cathode Current", "slug": "cathode_current", "type": "Augment", "standing": 25000, "warframe": "Gyre", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_78", "sellStatus": "ingame", "ingameSellers": 18, "onlineSellers": 23, "highestBuyPrice": 12, "buyRatio": 0.48, "buyBuyer": "Buyer_64", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Coil Recharge", "slug": "coil_recharge", "type": "Augment", "standing": 25000, "warframe": "Gyre", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_53", "sellStatus": "ingame", "ingameSellers": 12, "onlineSellers": 21, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_97", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Conductive Sphere", "slug": "conductive_sphere", "type": "Augment", "standing": 25000, "warframe": "Gyre", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_68", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 18, "highestBuyPrice": 6, "buyRatio": 0.24, "buyBuyer": "Buyer_88", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Reverse Rotorswell", "slug": "reverse_rotorswell", "type": "Augment", "standing": 25000, "warframe": "Gyre", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_42", "sellStatus": "ingame", "ingameSellers": 15, "onlineSellers": 25, "highestBuyPrice": 6, "buyRatio": 0.24, "buyBuyer": "Buyer_56", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Lasting Covenant", "slug": "lasting_covenant", "type": "Augment", "standing": 25000, "warframe": "Harrow", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_32", "sellStatus": "ingame", "ingameSellers": 4, "onlineSellers": 11, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_73", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Tribunal", "slug": "tribunal", "type": "Augment", "standing": 25000, "warframe": "Harrow", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_94", "sellStatus": "ingame", "ingameSellers": 7, "onlineSellers": 20, "highestBuyPrice": 6, "buyRatio": 0.24, "buyBuyer": "Buyer_77", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 5, "updatedAt": 1791026400000}], "cephalon_suda": [{"name": "Synoid Simulor", "slug": "synoid_simulor", "type": "Weapon", "standing": 125000, "warframe": "", "lowestSellPrice": 35, "sellRatio": 0.28, "sellSeller": "TennoTrader_34", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 15, "highestBuyPrice": 25, "buyRatio": 0.2, "buyBuyer": "Buyer_56", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Synoid Gammacor", "slug": "synoid_gammacor", "type": "Weapon", "standing": 100000, "warframe": "", "lowestSellPrice": 35, "sellRatio": 0.35, "sellSeller": "TennoTrader_48", "sellStatus": "ingame", "ingameSellers": 10, "onlineSellers": 22, "highestBuyPrice": 23, "buyRatio": 0.23, "buyBuyer": "Buyer_80", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Synoid Heliocor", "slug": "synoid_heliocor", "type": "Weapon", "standing": 125000, "warframe": "", "lowestSellPrice": 35, "sellRatio": 0.28, "sellSeller": "TennoTrader_11", "sellStatus": "ingame", "ingameSellers": 8, "onlineSellers": 22, "highestBuyPrice": 27, "buyRatio": 0.22, "buyBuyer": "Buyer_70", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Resonance", "slug": "resonance", "type": "Augment", "standing": 25000, "warframe": "Banshee", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_91", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 25, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_64", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Savage Silence", "slug": "savage_silence", "type": "Augment", "standing": 25000, "warframe": "Banshee", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_10", "sellStatus": "ingame", "ingameSellers": 4, "onlineSellers": 21, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_75", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Razor Mortar", "slug": "razor_mortar", "type": "Augment", "standing": 25000, "warframe": "Caliban", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_30", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 17, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_34", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Afterburn", "slug": "afterburn", "type": "Augment", "standing": 25000, "warframe": "Chroma", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_40", "sellStatus": "ingame", "ingameSellers": 9, "onlineSellers": 10, "highestBuyPrice": 5, "buyRatio": 0.2, "buyBuyer": "Buyer_10", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Everlasting Ward", "slug": "everlasting_ward", "type": "Augment", "standing": 25000, "warframe": "Chroma", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_93", "sellStatus": "ingame", "ingameSellers": 14, "onlineSellers": 18, "highestBuyPrice": 6, "buyRatio": 0.24, "buyBuyer": "Buyer_63", "buyStatus": "ingame", "ingameBuyers": 3, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Guardian Armor", "slug": "guardian_armor", "type": "Augment", "standing": 25000, "warframe": "Chroma", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_24", "sellStatus": "ingame", "ingameSellers": 15, "onlineSellers": 17, "highestBuyPrice": 5, "buyRatio": 0.2, "buyBuyer": "Buyer_40", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Guided Effigy", "slug": "guided_effigy", "type": "Augment", "standing": 25000, "warframe": "Chroma", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_58", "sellStatus": "ingame", "ingameSellers": 14, "onlineSellers": 15, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_72", "buyStatus": "online", "ingameBuyers": 2, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Vexing Retaliation", "slug": "vexing_retaliation", "type": "Augment", "standing": 25000, "warframe": "Chroma", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_63", "sellStatus": "ingame", "ingameSellers": 17, "onlineSellers": 9, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_59", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Noctua Swarm", "slug": "noctua_swarm", "type": "Augment", "standing": 25000, "warframe": "Dante", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_14", "sellStatus": "ingame", "ingameSellers": 18, "onlineSellers": 22, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_86", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Biting Frost", "slug": "biting_frost", "type": "Augment", "standing": 25000, "warframe": "Frost", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_29", "sellStatus": "ingame", "ingameSellers": 18, "onlineSellers": 13, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_53", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Chilling Globe", "slug": "chilling_globe", "type": "Augment", "standing": 25000, "warframe": "Frost", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_63", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 17, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_14", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Freeze Force", "slug": "freeze_force", "type": "Augment", "standing": 25000, "warframe": "Frost", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_66", "sellStatus": "ingame", "ingameSellers": 14, "onlineSellers": 17, "highestBuyPrice": 12, "buyRatio": 0.48, "buyBuyer": "Buyer_85", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Ice Wave Impedance", "slug": "ice_wave_impedance", "type": "Augment", "standing": 25000, "warframe": "Frost", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_63", "sellStatus": "ingame", "ingameSellers": 5, "onlineSellers": 9, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_67", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Icy Avalanche", "slug": "icy_avalanche", "type": "Augment", "standing": 25000, "warframe": "Frost", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_25", "sellStatus": "ingame", "ingameSellers": 4, "onlineSellers": 13, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_23", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Aegis Gale", "slug": "aegis_gale", "type": "Augment", "standing": 25000, "warframe": "Hildryn", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_76", "sellStatus": "ingame", "ingameSellers": 5, "onlineSellers": 10, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_69", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Balefire Surge", "slug": "balefire_surge", "type": "Augment", "standing": 25000, "warframe": "Hildryn", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_53", "sellStatus": "ingame", "ingameSellers": 10, "onlineSellers": 25, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_67", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Blazing Pillage", "slug": "blazing_pillage", "type": "Augment", "standing": 25000, "warframe": "Hildryn", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_61", "sellStatus": "ingame", "ingameSellers": 9, "onlineSellers": 8, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_96", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Pilfering Swarm", "slug": "pilfering_swarm", "type": "Augment", "standing": 25000, "warframe": "Hydroid", "lowestSellPrice": 16, "sellRatio": 0.64, "sellSeller": "TennoTrader_65", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 19, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_39", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Rousing Plunder", "slug": "rousing_plunder", "type": "Augment", "standing": 25000, "warframe": "Hydroid", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_90", "sellStatus": "ingame", "ingameSellers": 5, "onlineSellers": 10, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_32", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Tidal Impunity", "slug": "tidal_impunity", "type": "Augment", "standing": 25000, "warframe": "Hydroid", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_51", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 9, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_44", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Viral Tempest", "slug": "viral_tempest", "type": "Augment", "standing": 25000, "warframe": "Hydroid", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_32", "sellStatus": "ingame", "ingameSellers": 15, "onlineSellers": 19, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_61", "buyStatus": "ingame", "ingameBuyers": 3, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Concentrated Arrow", "slug": "concentrated_arrow", "type": "Augment", "standing": 25000, "warframe": "Ivara", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_22", "sellStatus": "ingame", "ingameSellers": 14, "onlineSellers": 13, "highestBuyPrice": 12, "buyRatio": 0.48, "buyBuyer": "Buyer_20", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Empowered Quiver", "slug": "empowered_quiver", "type": "Augment", "standing": 25000, "warframe": "Ivara", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_77", "sellStatus": "ingame", "ingameSellers": 15, "onlineSellers": 22, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_90", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Infiltrate", "slug": "infiltrate", "type": "Augment", "standing": 25000, "warframe": "Ivara", "lowestSellPrice": 16, "sellRatio": 0.64, "sellSeller": "TennoTrader_76", "sellStatus": "ingame", "ingameSellers": 12, "onlineSellers": 12, "highestBuyPrice": 13, "buyRatio": 0.52, "buyBuyer": "Buyer_33", "buyStatus": "online", "ingameBuyers": 2, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Piercing Navigator", "slug": "piercing_navigator", "type": "Augment", "standing": 25000, "warframe": "Ivara", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_20", "sellStatus": "ingame", "ingameSellers": 7, "onlineSellers": 8, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_98", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Cataclysmic Continuum", "slug": "cataclysmic_continuum", "type": "Augment", "standing": 25000, "warframe": "Limbo", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_47", "sellStatus": "ingame", "ingameSellers": 18, "onlineSellers": 17, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_40", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Rift Haven", "slug": "rift_haven", "type": "Augment", "standing": 25000, "warframe": "Limbo", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_85", "sellStatus": "ingame", "ingameSellers": 11, "onlineSellers": 10, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_51", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Rift Torrent", "slug": "rift_torrent", "type": "Augment", "standing": 25000, "warframe": "Limbo", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_24", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 15, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_58", "buyStatus": "online", "ingameBuyers": 2, "onlineBuyers": 2, "updatedAt": 1791026400000}], "perrin_sequence": [{"name": "Secura Penta", "slug": "secura_penta", "type": "Weapon", "standing": 125000, "warframe": "", "lowestSellPrice": 40, "sellRatio": 0.32, "sellSeller": "TennoTrader_20", "sellStatus": "ingame", "ingameSellers": 10, "onlineSellers": 17, "highestBuyPrice": 25, "buyRatio": 0.2, "buyBuyer": "Buyer_59", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Secura Dual Cestra", "slug": "secura_dual_cestra", "type": "Weapon", "standing": 100000, "warframe": "", "lowestSellPrice": 35, "sellRatio": 0.35, "sellSeller": "TennoTrader_83", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 18, "highestBuyPrice": 25, "buyRatio": 0.25, "buyBuyer": "Buyer_56", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Secura Lecta", "slug": "secura_lecta", "type": "Weapon", "standing": 125000, "warframe": "", "lowestSellPrice": 35, "sellRatio": 0.28, "sellSeller": "TennoTrader_79", "sellStatus": "ingame", "ingameSellers": 4, "onlineSellers": 25, "highestBuyPrice": 27, "buyRatio": 0.22, "buyBuyer": "Buyer_67", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Resonance", "slug": "resonance", "type": "Augment", "standing": 25000, "warframe": "Banshee", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_85", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 10, "highestBuyPrice": 5, "buyRatio": 0.2, "buyBuyer": "Buyer_63", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Savage Silence", "slug": "savage_silence", "type": "Augment", "standing": 25000, "warframe": "Banshee", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_58", "sellStatus": "ingame", "ingameSellers": 8, "onlineSellers": 17, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_92", "buyStatus": "ingame", "ingameBuyers": 3, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Razor Mortar", "slug": "razor_mortar", "type": "Augment", "standing": 25000, "warframe": "Caliban", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_32", "sellStatus": "ingame", "ingameSellers": 18, "onlineSellers": 12, "highestBuyPrice": 12, "buyRatio": 0.48, "buyBuyer": "Buyer_76", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Afterburn", "slug": "afterburn", "type": "Augment", "standing": 25000, "warframe": "Chroma", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_39", "sellStatus": "ingame", "ingameSellers": 15, "onlineSellers": 16, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_68", "buyStatus": "ingame", "ingameBuyers": 3, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Everlasting Ward", "slug": "everlasting_ward", "type": "Augment", "standing": 25000, "warframe": "Chroma", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_37", "sellStatus": "ingame", "ingameSellers": 9, "onlineSellers": 8, "highestBuyPrice": 6, "buyRatio": 0.24, "buyBuyer": "Buyer_42", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Guardian Armor", "slug": "guardian_armor", "type": "Augment", "standing": 25000, "warframe": "Chroma", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_17", "sellStatus": "ingame", "ingameSellers": 5, "onlineSellers": 24, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_20", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Guided Effigy", "slug": "guided_effigy", "type": "Augment", "standing": 25000, "warframe": "Chroma", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_48", "sellStatus": "ingame", "ingameSellers": 4, "onlineSellers": 20, "highestBuyPrice": 12, "buyRatio": 0.48, "buyBuyer": "Buyer_89", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Vexing Retaliation", "slug": "vexing_retaliation", "type": "Augment", "standing": 25000, "warframe": "Chroma", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_16", "sellStatus": "ingame", "ingameSellers": 11, "onlineSellers": 25, "highestBuyPrice": 12, "buyRatio": 0.48, "buyBuyer": "Buyer_12", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Spectral Spirit", "slug": "spectral_spirit", "type": "Augment", "standing": 25000, "warframe": "Dagath", "lowestSellPrice": 18, "sellRatio": 0.72, "sellSeller": "TennoTrader_40", "sellStatus": "ingame", "ingameSellers": 15, "onlineSellers": 18, "highestBuyPrice": 14, "buyRatio": 0.56, "buyBuyer": "Buyer_77", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Mach Crash", "slug": "mach_crash", "type": "Augment", "standing": 25000, "warframe": "Gauss", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_39", "sellStatus": "ingame", "ingameSellers": 13, "onlineSellers": 9, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_96", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Thermal Transfer", "slug": "thermal_transfer", "type": "Augment", "standing": 25000, "warframe": "Gauss", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_50", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 10, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_92", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Cathode Current", "slug": "cathode_current", "type": "Augment", "standing": 25000, "warframe": "Gyre", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_10", "sellStatus": "ingame", "ingameSellers": 15, "onlineSellers": 18, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_88", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Coil Recharge", "slug": "coil_recharge", "type": "Augment", "standing": 25000, "warframe": "Gyre", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_25", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 18, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_56", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Conductive Sphere", "slug": "conductive_sphere", "type": "Augment", "standing": 25000, "warframe": "Gyre", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_17", "sellStatus": "ingame", "ingameSellers": 15, "onlineSellers": 16, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_56", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Reverse Rotorswell", "slug": "reverse_rotorswell", "type": "Augment", "standing": 25000, "warframe": "Gyre", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_47", "sellStatus": "ingame", "ingameSellers": 13, "onlineSellers": 21, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_44", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Aegis Gale", "slug": "aegis_gale", "type": "Augment", "standing": 25000, "warframe": "Hildryn", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_72", "sellStatus": "ingame", "ingameSellers": 15, "onlineSellers": 12, "highestBuyPrice": 5, "buyRatio": 0.2, "buyBuyer": "Buyer_99", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Balefire Surge", "slug": "balefire_surge", "type": "Augment", "standing": 25000, "warframe": "Hildryn", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_95", "sellStatus": "ingame", "ingameSellers": 15, "onlineSellers": 21, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_88", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Blazing Pillage", "slug": "blazing_pillage", "type": "Augment", "standing": 25000, "warframe": "Hildryn", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_15", "sellStatus": "ingame", "ingameSellers": 14, "onlineSellers": 20, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_97", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Desiccation's Curse", "slug": "desiccations_curse", "type": "Augment", "standing": 25000, "warframe": "Inaros", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_45", "sellStatus": "ingame", "ingameSellers": 5, "onlineSellers": 13, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_41", "buyStatus": "online", "ingameBuyers": 2, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Elemental Sandstorm", "slug": "elemental_sandstorm", "type": "Augment", "standing": 25000, "warframe": "Inaros", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_20", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 10, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_34", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Negation Armor", "slug": "negation_armor", "type": "Augment", "standing": 25000, "warframe": "Inaros", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_57", "sellStatus": "ingame", "ingameSellers": 10, "onlineSellers": 16, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_42", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Concentrated Arrow", "slug": "concentrated_arrow", "type": "Augment", "standing": 25000, "warframe": "Ivara", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_31", "sellStatus": "ingame", "ingameSellers": 8, "onlineSellers": 15, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_12", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Empowered Quiver", "slug": "empowered_quiver", "type": "Augment", "standing": 25000, "warframe": "Ivara", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_51", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 14, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_38", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Infiltrate", "slug": "infiltrate", "type": "Augment", "standing": 25000, "warframe": "Ivara", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_31", "sellStatus": "ingame", "ingameSellers": 10, "onlineSellers": 13, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_89", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Piercing Navigator", "slug": "piercing_navigator", "type": "Augment", "standing": 25000, "warframe": "Ivara", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_60", "sellStatus": "ingame", "ingameSellers": 18, "onlineSellers": 24, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_70", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Counter Pulse", "slug": "counter_pulse", "type": "Augment", "standing": 25000, "warframe": "Mag", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_71", "sellStatus": "ingame", "ingameSellers": 7, "onlineSellers": 9, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_70", "buyStatus": "ingame", "ingameBuyers": 3, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Fracturing Crush", "slug": "fracturing_crush", "type": "Augment", "standing": 25000, "warframe": "Mag", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_83", "sellStatus": "ingame", "ingameSellers": 17, "onlineSellers": 24, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_65", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Greedy Pull", "slug": "greedy_pull", "type": "Augment", "standing": 25000, "warframe": "Mag", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_12", "sellStatus": "ingame", "ingameSellers": 14, "onlineSellers": 15, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_42", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 8, "updatedAt": 1791026400000}], "red_veil": [{"name": "Rakta Cernos", "slug": "rakta_cernos", "type": "Weapon", "standing": 125000, "warframe": "", "lowestSellPrice": 50, "sellRatio": 0.4, "sellSeller": "TennoTrader_13", "sellStatus": "ingame", "ingameSellers": 8, "onlineSellers": 12, "highestBuyPrice": 35, "buyRatio": 0.28, "buyBuyer": "Buyer_84", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Rakta Ballistica", "slug": "rakta_ballistica", "type": "Weapon", "standing": 100000, "warframe": "", "lowestSellPrice": 50, "sellRatio": 0.5, "sellSeller": "TennoTrader_43", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 13, "highestBuyPrice": 42, "buyRatio": 0.42, "buyBuyer": "Buyer_52", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Rakta Dark Dagger", "slug": "rakta_dark_dagger", "type": "Weapon", "standing": 125000, "warframe": "", "lowestSellPrice": 40, "sellRatio": 0.32, "sellSeller": "TennoTrader_16", "sellStatus": "ingame", "ingameSellers": 5, "onlineSellers": 10, "highestBuyPrice": 32, "buyRatio": 0.26, "buyBuyer": "Buyer_21", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Rising Storm", "slug": "rising_storm", "type": "Augment", "standing": 25000, "warframe": "Ash", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_88", "sellStatus": "ingame", "ingameSellers": 11, "onlineSellers": 8, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_58", "buyStatus": "ingame", "ingameBuyers": 3, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Seeking Shuriken", "slug": "seeking_shuriken", "type": "Augment", "standing": 25000, "warframe": "Ash", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_68", "sellStatus": "ingame", "ingameSellers": 9, "onlineSellers": 16, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_61", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Smoke Shadow", "slug": "smoke_shadow", "type": "Augment", "standing": 25000, "warframe": "Ash", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_66", "sellStatus": "ingame", "ingameSellers": 17, "onlineSellers": 18, "highestBuyPrice": 5, "buyRatio": 0.2, "buyBuyer": "Buyer_55", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Teleport Rush", "slug": "teleport_rush", "type": "Augment", "standing": 25000, "warframe": "Ash", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_80", "sellStatus": "ingame", "ingameSellers": 14, "onlineSellers": 15, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_56", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Ore Gaze", "slug": "ore_gaze", "type": "Augment", "standing": 25000, "warframe": "Atlas", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_84", "sellStatus": "ingame", "ingameSellers": 14, "onlineSellers": 20, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_58", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Path Of Statues", "slug": "path_of_statues", "type": "Augment", "standing": 25000, "warframe": "Atlas", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_69", "sellStatus": "ingame", "ingameSellers": 5, "onlineSellers": 24, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_84", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Rubble Heap", "slug": "rubble_heap", "type": "Augment", "standing": 25000, "warframe": "Atlas", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_81", "sellStatus": "ingame", "ingameSellers": 11, "onlineSellers": 12, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_51", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Tectonic Fracture", "slug": "tectonic_fracture", "type": "Augment", "standing": 25000, "warframe": "Atlas", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_63", "sellStatus": "ingame", "ingameSellers": 5, "onlineSellers": 17, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_51", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Titanic Rumbler", "slug": "titanic_rumbler", "type": "Augment", "standing": 25000, "warframe": "Atlas", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_21", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 24, "highestBuyPrice": 12, "buyRatio": 0.48, "buyBuyer": "Buyer_67", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Prismatic Companion", "slug": "prismatic_companion", "type": "Augment", "standing": 25000, "warframe": "Citrine", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_32", "sellStatus": "ingame", "ingameSellers": 17, "onlineSellers": 14, "highestBuyPrice": 5, "buyRatio": 0.2, "buyBuyer": "Buyer_27", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Recrystalize", "slug": "recrystalize", "type": "Augment", "standing": 25000, "warframe": "Citrine", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_57", "sellStatus": "ingame", "ingameSellers": 12, "onlineSellers": 21, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_59", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Spectral Spirit", "slug": "spectral_spirit", "type": "Augment", "standing": 25000, "warframe": "Dagath", "lowestSellPrice": 18, "sellRatio": 0.72, "sellSeller": "TennoTrader_88", "sellStatus": "ingame", "ingameSellers": 8, "onlineSellers": 22, "highestBuyPrice": 14, "buyRatio": 0.56, "buyBuyer": "Buyer_92", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Exothermic", "slug": "exothermic", "type": "Augment", "standing": 25000, "warframe": "Ember", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_34", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 18, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_57", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Fireball Frenzy", "slug": "fireball_frenzy", "type": "Augment", "standing": 25000, "warframe": "Ember", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_91", "sellStatus": "ingame", "ingameSellers": 9, "onlineSellers": 22, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_20", "buyStatus": "ingame", "ingameBuyers": 3, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Healing Flame", "slug": "healing_flame", "type": "Augment", "standing": 25000, "warframe": "Ember", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_70", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 14, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_81", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Immolated Radiance", "slug": "immolated_radiance", "type": "Augment", "standing": 25000, "warframe": "Ember", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_73", "sellStatus": "ingame", "ingameSellers": 6, "onlineSellers": 20, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_48", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Warrior's Rest", "slug": "warriors_rest", "type": "Augment", "standing": 25000, "warframe": "Excalibur Umbra", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_78", "sellStatus": "ingame", "ingameSellers": 7, "onlineSellers": 9, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_63", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Blending Talons", "slug": "blending_talons", "type": "Augment", "standing": 25000, "warframe": "Garuda", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_74", "sellStatus": "ingame", "ingameSellers": 13, "onlineSellers": 20, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_93", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Blood Forge", "slug": "blood_forge", "type": "Augment", "standing": 25000, "warframe": "Garuda", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_42", "sellStatus": "ingame", "ingameSellers": 8, "onlineSellers": 11, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_31", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Dread Ward", "slug": "dread_ward", "type": "Augment", "standing": 25000, "warframe": "Garuda", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_69", "sellStatus": "ingame", "ingameSellers": 7, "onlineSellers": 22, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_56", "buyStatus": "ingame", "ingameBuyers": 3, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Catapult", "slug": "catapult", "type": "Augment", "standing": 25000, "warframe": "Grendel", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_62", "sellStatus": "ingame", "ingameSellers": 12, "onlineSellers": 17, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_60", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Gastro", "slug": "gastro", "type": "Augment", "standing": 25000, "warframe": "Grendel", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_71", "sellStatus": "ingame", "ingameSellers": 14, "onlineSellers": 19, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_25", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Gourmand", "slug": "gourmand", "type": "Augment", "standing": 25000, "warframe": "Grendel", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_40", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 24, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_98", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Hearty Nourishment", "slug": "hearty_nourishment", "type": "Augment", "standing": 25000, "warframe": "Grendel", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_53", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 24, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_41", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Lasting Covenant", "slug": "lasting_covenant", "type": "Augment", "standing": 25000, "warframe": "Harrow", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_29", "sellStatus": "ingame", "ingameSellers": 17, "onlineSellers": 15, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_10", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Tribunal", "slug": "tribunal", "type": "Augment", "standing": 25000, "warframe": "Harrow", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_32", "sellStatus": "ingame", "ingameSellers": 17, "onlineSellers": 19, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_56", "buyStatus": "online", "ingameBuyers": 4, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Warding Thurible", "slug": "warding_thurible", "type": "Augment", "standing": 25000, "warframe": "Harrow", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_43", "sellStatus": "ingame", "ingameSellers": 15, "onlineSellers": 24, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_60", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Jade's Judgment", "slug": "jades_judgment", "type": "Augment", "standing": 25000, "warframe": "Jade", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_33", "sellStatus": "ingame", "ingameSellers": 13, "onlineSellers": 24, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_43", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 3, "updatedAt": 1791026400000}], "new_loka": [{"name": "Sancti Tigris", "slug": "sancti_tigris", "type": "Weapon", "standing": 125000, "warframe": "", "lowestSellPrice": 35, "sellRatio": 0.28, "sellSeller": "TennoTrader_92", "sellStatus": "ingame", "ingameSellers": 17, "onlineSellers": 13, "highestBuyPrice": 27, "buyRatio": 0.22, "buyBuyer": "Buyer_67", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Sancti Castanas", "slug": "sancti_castanas", "type": "Weapon", "standing": 100000, "warframe": "", "lowestSellPrice": 35, "sellRatio": 0.35, "sellSeller": "TennoTrader_33", "sellStatus": "ingame", "ingameSellers": 9, "onlineSellers": 14, "highestBuyPrice": 27, "buyRatio": 0.27, "buyBuyer": "Buyer_48", "buyStatus": "online", "ingameBuyers": 2, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Sancti Magistar", "slug": "sancti_magistar", "type": "Weapon", "standing": 125000, "warframe": "", "lowestSellPrice": 42, "sellRatio": 0.34, "sellSeller": "TennoTrader_43", "sellStatus": "ingame", "ingameSellers": 12, "onlineSellers": 9, "highestBuyPrice": 32, "buyRatio": 0.26, "buyBuyer": "Buyer_87", "buyStatus": "ingame", "ingameBuyers": 3, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Elusive Retribution", "slug": "elusive_retribution", "type": "Augment", "standing": 25000, "warframe": "Baruuk", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_21", "sellStatus": "ingame", "ingameSellers": 9, "onlineSellers": 9, "highestBuyPrice": 5, "buyRatio": 0.2, "buyBuyer": "Buyer_88", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Endless Lullaby", "slug": "endless_lullaby", "type": "Augment", "standing": 25000, "warframe": "Baruuk", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_96", "sellStatus": "ingame", "ingameSellers": 14, "onlineSellers": 16, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_35", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Reactive Storm", "slug": "reactive_storm", "type": "Augment", "standing": 25000, "warframe": "Baruuk", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_21", "sellStatus": "ingame", "ingameSellers": 5, "onlineSellers": 11, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_13", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Calm & Frenzy", "slug": "calm_and_frenzy", "type": "Augment", "standing": 25000, "warframe": "Equinox", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_72", "sellStatus": "ingame", "ingameSellers": 8, "onlineSellers": 25, "highestBuyPrice": 6, "buyRatio": 0.24, "buyBuyer": "Buyer_56", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Duality", "slug": "duality", "type": "Augment", "standing": 25000, "warframe": "Equinox", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_85", "sellStatus": "ingame", "ingameSellers": 11, "onlineSellers": 13, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_11", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Energy Transfer", "slug": "energy_transfer", "type": "Augment", "standing": 25000, "warframe": "Equinox", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_14", "sellStatus": "ingame", "ingameSellers": 7, "onlineSellers": 18, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_71", "buyStatus": "online", "ingameBuyers": 2, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Peaceful Provocation", "slug": "peaceful_provocation", "type": "Augment", "standing": 25000, "warframe": "Equinox", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_93", "sellStatus": "ingame", "ingameSellers": 12, "onlineSellers": 23, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_38", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Mending Splinters", "slug": "mending_splinters", "type": "Augment", "standing": 25000, "warframe": "Gara", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_12", "sellStatus": "ingame", "ingameSellers": 10, "onlineSellers": 10, "highestBuyPrice": 6, "buyRatio": 0.24, "buyBuyer": "Buyer_96", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Shattered Storm", "slug": "shattered_storm", "type": "Augment", "standing": 25000, "warframe": "Gara", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_11", "sellStatus": "ingame", "ingameSellers": 9, "onlineSellers": 20, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_32", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Spectrosiphon", "slug": "spectrosiphon", "type": "Augment", "standing": 25000, "warframe": "Gara", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_63", "sellStatus": "ingame", "ingameSellers": 9, "onlineSellers": 15, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_95", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Pilfering Swarm", "slug": "pilfering_swarm", "type": "Augment", "standing": 25000, "warframe": "Hydroid", "lowestSellPrice": 16, "sellRatio": 0.64, "sellSeller": "TennoTrader_76", "sellStatus": "ingame", "ingameSellers": 7, "onlineSellers": 11, "highestBuyPrice": 13, "buyRatio": 0.52, "buyBuyer": "Buyer_53", "buyStatus": "ingame", "ingameBuyers": 3, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Rousing Plunder", "slug": "rousing_plunder", "type": "Augment", "standing": 25000, "warframe": "Hydroid", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_49", "sellStatus": "ingame", "ingameSellers": 11, "onlineSellers": 14, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_15", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Tidal Impunity", "slug": "tidal_impunity", "type": "Augment", "standing": 25000, "warframe": "Hydroid", "lowestSellPrice": 12, "sellRatio": 0.48, "sellSeller": "TennoTrader_63", "sellStatus": "ingame", "ingameSellers": 10, "onlineSellers": 15, "highestBuyPrice": 9, "buyRatio": 0.36, "buyBuyer": "Buyer_98", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Viral Tempest", "slug": "viral_tempest", "type": "Augment", "standing": 25000, "warframe": "Hydroid", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_79", "sellStatus": "ingame", "ingameSellers": 12, "onlineSellers": 20, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_81", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Kumihimo Loading", "slug": "kumihimo_loading", "type": "Augment", "standing": 25000, "warframe": "Koumei", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_28", "sellStatus": "ingame", "ingameSellers": 18, "onlineSellers": 16, "highestBuyPrice": 6, "buyRatio": 0.24, "buyBuyer": "Buyer_77", "buyStatus": "ingame", "ingameBuyers": 5, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Omikuji's Fortune", "slug": "omikujis_fortune", "type": "Augment", "standing": 25000, "warframe": "Koumei", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_41", "sellStatus": "ingame", "ingameSellers": 14, "onlineSellers": 13, "highestBuyPrice": 11, "buyRatio": 0.44, "buyBuyer": "Buyer_51", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Volatile Recompense", "slug": "volatile_recompense", "type": "Augment", "standing": 25000, "warframe": "Kullervo", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_98", "sellStatus": "ingame", "ingameSellers": 17, "onlineSellers": 20, "highestBuyPrice": 5, "buyRatio": 0.2, "buyBuyer": "Buyer_90", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Wrath Of Ukko", "slug": "wrath_of_ukko", "type": "Augment", "standing": 25000, "warframe": "Kullervo", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_48", "sellStatus": "ingame", "ingameSellers": 5, "onlineSellers": 22, "highestBuyPrice": 6, "buyRatio": 0.24, "buyBuyer": "Buyer_38", "buyStatus": "ingame", "ingameBuyers": 2, "onlineBuyers": 3, "updatedAt": 1791026400000}, {"name": "Lingering Transmutation", "slug": "lingering_transmutation", "type": "Augment", "standing": 25000, "warframe": "Lavos", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_22", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 22, "highestBuyPrice": 6, "buyRatio": 0.24, "buyBuyer": "Buyer_24", "buyStatus": "online", "ingameBuyers": 3, "onlineBuyers": 4, "updatedAt": 1791026400000}, {"name": "Swift Bite", "slug": "swift_bite", "type": "Augment", "standing": 25000, "warframe": "Lavos", "lowestSellPrice": 13, "sellRatio": 0.52, "sellSeller": "TennoTrader_35", "sellStatus": "ingame", "ingameSellers": 4, "onlineSellers": 24, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_60", "buyStatus": "ingame", "ingameBuyers": 4, "onlineBuyers": 6, "updatedAt": 1791026400000}, {"name": "Valence Formation", "slug": "valence_formation", "type": "Augment", "standing": 25000, "warframe": "Lavos", "lowestSellPrice": 16, "sellRatio": 0.64, "sellSeller": "TennoTrader_66", "sellStatus": "ingame", "ingameSellers": 15, "onlineSellers": 13, "highestBuyPrice": 13, "buyRatio": 0.52, "buyBuyer": "Buyer_31", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Counter Pulse", "slug": "counter_pulse", "type": "Augment", "standing": 25000, "warframe": "Mag", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_56", "sellStatus": "ingame", "ingameSellers": 17, "onlineSellers": 14, "highestBuyPrice": 7, "buyRatio": 0.28, "buyBuyer": "Buyer_29", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Fracturing Crush", "slug": "fracturing_crush", "type": "Augment", "standing": 25000, "warframe": "Mag", "lowestSellPrice": 14, "sellRatio": 0.56, "sellSeller": "TennoTrader_97", "sellStatus": "ingame", "ingameSellers": 11, "onlineSellers": 23, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_74", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 8, "updatedAt": 1791026400000}, {"name": "Greedy Pull", "slug": "greedy_pull", "type": "Augment", "standing": 25000, "warframe": "Mag", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_15", "sellStatus": "ingame", "ingameSellers": 13, "onlineSellers": 23, "highestBuyPrice": 12, "buyRatio": 0.48, "buyBuyer": "Buyer_28", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 7, "updatedAt": 1791026400000}, {"name": "Magnetized Discharge", "slug": "magnetized_discharge", "type": "Augment", "standing": 25000, "warframe": "Mag", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_12", "sellStatus": "ingame", "ingameSellers": 9, "onlineSellers": 22, "highestBuyPrice": 5, "buyRatio": 0.2, "buyBuyer": "Buyer_98", "buyStatus": "ingame", "ingameBuyers": 1, "onlineBuyers": 5, "updatedAt": 1791026400000}, {"name": "Assimilate", "slug": "assimilate", "type": "Augment", "standing": 25000, "warframe": "Nyx", "lowestSellPrice": 10, "sellRatio": 0.4, "sellSeller": "TennoTrader_23", "sellStatus": "ingame", "ingameSellers": 16, "onlineSellers": 22, "highestBuyPrice": 5, "buyRatio": 0.2, "buyBuyer": "Buyer_37", "buyStatus": "online", "ingameBuyers": 5, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Chaos Sphere", "slug": "chaos_sphere", "type": "Augment", "standing": 25000, "warframe": "Nyx", "lowestSellPrice": 15, "sellRatio": 0.6, "sellSeller": "TennoTrader_78", "sellStatus": "ingame", "ingameSellers": 13, "onlineSellers": 20, "highestBuyPrice": 10, "buyRatio": 0.4, "buyBuyer": "Buyer_61", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 2, "updatedAt": 1791026400000}, {"name": "Mind Freak", "slug": "mind_freak", "type": "Augment", "standing": 25000, "warframe": "Nyx", "lowestSellPrice": 11, "sellRatio": 0.44, "sellSeller": "TennoTrader_62", "sellStatus": "ingame", "ingameSellers": 17, "onlineSellers": 24, "highestBuyPrice": 8, "buyRatio": 0.32, "buyBuyer": "Buyer_79", "buyStatus": "online", "ingameBuyers": 1, "onlineBuyers": 7, "updatedAt": 1791026400000}]};
+
+    /* Application State */
+    const STATE = {
+      currentSyndicate: 'steel_meridian',
+      syndicateItems: {},
+      scanInProgress: false,
+      scanSessionId: 0,
+      activeFilter: 'all',
+      searchQuery: '',
+      currentViewMode: 'sell',
+      sortColumn: 'sellRatio',
+      sortAsc: false,
+      settings: {
+        ttlMinutes: 15,
+        delayMs: 350,
+        apiVersion: 'v2',
+        corsMode: 'direct',
+        customProxy: ''
+      },
+      countdownInterval: null
+    };
+
+    /* Load Settings from LocalStorage */
+    function loadSettings() {
+      try {
+        const saved = localStorage.getItem('wf_syndicate_settings');
+        if (saved) {
+          STATE.settings = { ...STATE.settings, ...JSON.parse(saved) };
+        }
+      } catch (e) {
+        console.warn('Could not read settings from localStorage', e);
+      }
+    }
+
+    function saveSettings() {
+      try {
+        localStorage.setItem('wf_syndicate_settings', JSON.stringify(STATE.settings));
+      } catch (e) {}
+    }
+
+    /* LocalStorage Cache Utilities */
+    function getCacheKey(syndicateId) {
+      return `wf_syndicate_cache_${syndicateId}`;
+    }
+
+    function getCachedSyndicateData(syndicateId) {
+      try {
+        const raw = localStorage.getItem(getCacheKey(syndicateId));
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        const ttlMs = STATE.settings.ttlMinutes * 60 * 1000;
+        const age = Date.now() - parsed.timestamp;
+        if (age < ttlMs && Array.isArray(parsed.items) && parsed.items.length > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        console.warn('Cache parse error', e);
+      }
+      return null;
+    }
+
+    function setCachedSyndicateData(syndicateId, items) {
+      try {
+        const payload = {
+          timestamp: Date.now(),
+          syndicate: syndicateId,
+          items: items
+        };
+        localStorage.setItem(getCacheKey(syndicateId), JSON.stringify(payload));
+      } catch (e) {
+        console.warn('Cache write error', e);
+      }
+    }
+
+    /* Initialize UI Elements */
+    function initSyndicateSelector() {
+      const container = document.getElementById('syndicate-selector');
+      container.innerHTML = '';
+
+      Object.values(SYNDICATES_DATA).forEach(syn => {
+        const tab = document.createElement('div');
+        tab.className = `syn-tab ${syn.id === STATE.currentSyndicate ? 'active' : ''}`;
+        tab.dataset.synId = syn.id;
+        tab.style.setProperty('--syn-card-color', syn.color);
+        tab.style.setProperty('--syn-card-glow', `${syn.color}33`);
+
+        tab.innerHTML = `
+          <div class="syn-icon-wrapper">
+            <svg class="syn-icon-svg" viewBox="0 0 24 24">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <div class="syn-name">${syn.name}</div>
+          <div class="syn-subtext">${syn.items.length} items</div>
+        `;
+
+        tab.addEventListener('click', () => switchSyndicate(syn.id));
+        container.appendChild(tab);
+      });
+    }
+
+    /* Switch Syndicate */
+    function switchSyndicate(syndicateId) {
+      if (STATE.currentSyndicate === syndicateId && STATE.syndicateItems[syndicateId]) {
+        return;
+      }
+
+      // If a scan is currently running, cancel it
+      if (STATE.scanInProgress) {
+        STATE.scanSessionId++;
+        STATE.scanInProgress = false;
+      }
+
+      STATE.currentSyndicate = syndicateId;
+
+      // Update Tab Styles
+      document.querySelectorAll('.syn-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.synId === syndicateId);
+      });
+
+      // Update Root theme accent
+      const currentSyn = SYNDICATES_DATA[syndicateId];
+      if (currentSyn) {
+        document.documentElement.style.setProperty('--syn-active-color', currentSyn.color);
+        document.documentElement.style.setProperty('--syn-active-glow', `${currentSyn.color}40`);
+      }
+
+      // Check Cache
+      const cached = getCachedSyndicateData(syndicateId);
+      if (cached) {
+        STATE.syndicateItems[syndicateId] = cached.items;
+        renderTable();
+        updateSummaryMetrics();
+        startCountdownTimer(cached.timestamp);
+        setStatus(`Using cached data from ${formatTimeAgo(cached.timestamp)}`, false);
+        setApiBadge('Cached', false);
+      } else {
+        // Load baseline data first so user sees immediate data, then start fresh scan
+        if (BASELINE_CACHE[syndicateId]) {
+          STATE.syndicateItems[syndicateId] = JSON.parse(JSON.stringify(BASELINE_CACHE[syndicateId]));
+          renderTable();
+          updateSummaryMetrics();
+        }
+        startScan(syndicateId);
+      }
+    }
+
+    /* Rate-Limited Fetch Queue */
+    async function startScan(syndicateId) {
+      if (STATE.scanInProgress) {
+        STATE.scanSessionId++;
+      }
+
+      const sessionId = ++STATE.scanSessionId;
+      STATE.scanInProgress = true;
+      setApiBadge('Scanning...', true);
+
+      const syn = SYNDICATES_DATA[syndicateId];
+      if (!syn) return;
+
+      const items = syn.items;
+      const total = items.length;
+      
+      // Initialize items if not present
+      if (!STATE.syndicateItems[syndicateId]) {
+        STATE.syndicateItems[syndicateId] = items.map(it => ({
+          ...it,
+          lowestSellPrice: null,
+          sellRatio: null,
+          sellSeller: null,
+          sellStatus: 'offline',
+          ingameSellers: 0,
+          onlineSellers: 0,
+          highestBuyPrice: null,
+          buyRatio: null,
+          buyBuyer: null,
+          buyStatus: 'offline',
+          ingameBuyers: 0,
+          onlineBuyers: 0,
+          updatedAt: null
+        }));
+      }
+
+      updateProgressBar(0, total);
+      setStatus(`Scanning ${syn.name}: 0/${total} items...`, true);
+
+      const delayMs = parseInt(STATE.settings.delayMs, 10) || 350;
+
+      for (let i = 0; i < total; i++) {
+        // Check if user changed syndicate or canceled
+        if (sessionId !== STATE.scanSessionId) {
+          return;
+        }
+
+        const item = items[i];
+        setStatus(`Scanning ${syn.name}: ${i + 1}/${total} items (${item.name})...`, true);
+        updateProgressBar(i + 1, total);
+
+        try {
+          const orderData = await fetchOrdersForItem(item.slug);
+          if (sessionId !== STATE.scanSessionId) return;
+
+          parseAndApplyOrders(syndicateId, item.slug, orderData);
+          renderTable();
+          updateSummaryMetrics();
+        } catch (err) {
+          console.error(`Error scanning ${item.slug}:`, err);
+        }
+
+        // Wait enforced delay
+        if (i < total - 1) {
+          await new Promise(r => setTimeout(r, delayMs));
+        }
+      }
+
+      if (sessionId === STATE.scanSessionId) {
+        STATE.scanInProgress = false;
+        setCachedSyndicateData(syndicateId, STATE.syndicateItems[syndicateId]);
+        setApiBadge('Up to Date', false);
+        setStatus(`Completed scanning ${syn.name} (${total} items)`, false);
+        startCountdownTimer(Date.now());
+        showToast(`Scan complete for ${syn.name}`);
+      }
+    }
+
+    /* API Fetcher with Unified Endpoint & CORS Support */
+    async function fetchOrdersForItem(slug) {
+      let url = '';
+      if (STATE.settings.apiVersion === 'v1') {
+        url = `https://api.warframe.market/v1/items/${slug}/orders`;
+      } else {
+        url = `https://api.warframe.market/v2/orders/item/${slug}`;
+      }
+
+      // Proxy handling
+      if (STATE.settings.corsMode === 'custom' && STATE.settings.customProxy) {
+        url = STATE.settings.customProxy + encodeURIComponent(url);
+      }
+
+      const headers = {
+        'Accept': 'application/json'
+      };
+
+      try {
+        const resp = await fetch(url, { headers });
+        if (!resp.ok) {
+          throw new Error(`HTTP error ${resp.status}`);
+        }
+        return await resp.json();
+      } catch (err) {
+        // If direct fetch fails (likely CORS), throw clear error
+        throw err;
+      }
+    }
+
+    /* Order Parser & Standing Ratio Calculator */
+    function parseAndApplyOrders(syndicateId, slug, rawJson) {
+      const itemsList = STATE.syndicateItems[syndicateId];
+      if (!itemsList) return;
+
+      const itemIdx = itemsList.findIndex(it => it.slug === slug);
+      if (itemIdx === -1) return;
+
+      const item = itemsList[itemIdx];
+
+      // Extract orders array (supports v2 data and v1 payload.orders)
+      let orders = [];
+      if (rawJson && Array.isArray(rawJson.data)) {
+        orders = rawJson.data;
+      } else if (rawJson && rawJson.payload && Array.isArray(rawJson.payload.orders)) {
+        orders = rawJson.payload.orders;
+      }
+
+      if (!orders || orders.length === 0) {
+        item.updatedAt = Date.now();
+        return;
+      }
+
+      // Normalize orders: handle camelCase and snake_case
+      const normalized = orders.map(o => {
+        const orderType = o.type || o.order_type || 'sell';
+        const rank = (o.rank !== undefined) ? o.rank : ((o.mod_rank !== undefined) ? o.mod_rank : 0);
+        const user = o.user || {};
+        const userName = user.ingameName || user.ingame_name || user.slug || 'Unknown';
+        const userStatus = user.status || 'offline';
+        const platinum = typeof o.platinum === 'number' ? o.platinum : 0;
+        const visible = o.visible !== false;
+
+        return {
+          orderType,
+          rank,
+          userName,
+          userStatus,
+          platinum,
+          visible
+        };
+      });
+
+      // 1. Process SELL Orders
+      const sellOrders = normalized.filter(o => o.orderType === 'sell' && o.visible && (item.type !== 'Augment' || o.rank === 0));
+      
+      const ingameSells = sellOrders.filter(o => o.userStatus === 'ingame');
+      const onlineSells = sellOrders.filter(o => o.userStatus === 'online');
+
+      item.ingameSellers = ingameSells.length;
+      item.onlineSellers = onlineSells.length;
+
+      let chosenSell = null;
+      if (ingameSells.length > 0) {
+        ingameSells.sort((a, b) => a.platinum - b.platinum);
+        chosenSell = ingameSells[0];
+        item.sellStatus = 'ingame';
+      } else if (onlineSells.length > 0) {
+        onlineSells.sort((a, b) => a.platinum - b.platinum);
+        chosenSell = onlineSells[0];
+        item.sellStatus = 'online';
+      } else if (sellOrders.length > 0) {
+        sellOrders.sort((a, b) => a.platinum - b.platinum);
+        chosenSell = sellOrders[0];
+        item.sellStatus = 'offline';
+      }
+
+      if (chosenSell) {
+        item.lowestSellPrice = chosenSell.platinum;
+        item.sellSeller = chosenSell.userName;
+        const standingRatio = item.lowestSellPrice / (item.standing / 1000);
+        item.sellRatio = Math.round(standingRatio * 100) / 100;
+      }
+
+      // 2. Process BUY Orders (Instant Buyouts)
+      const buyOrders = normalized.filter(o => o.orderType === 'buy' && o.visible && (item.type !== 'Augment' || o.rank === 0));
+
+      const ingameBuys = buyOrders.filter(o => o.userStatus === 'ingame');
+      const onlineBuys = buyOrders.filter(o => o.userStatus === 'online');
+
+      item.ingameBuyers = ingameBuys.length;
+      item.onlineBuyers = onlineBuys.length;
+
+      let chosenBuy = null;
+      if (ingameBuys.length > 0) {
+        ingameBuys.sort((a, b) => b.platinum - a.platinum);
+        chosenBuy = ingameBuys[0];
+        item.buyStatus = 'ingame';
+      } else if (onlineBuys.length > 0) {
+        onlineBuys.sort((a, b) => b.platinum - a.platinum);
+        chosenBuy = onlineBuys[0];
+        item.buyStatus = 'online';
+      } else if (buyOrders.length > 0) {
+        buyOrders.sort((a, b) => b.platinum - a.platinum);
+        chosenBuy = buyOrders[0];
+        item.buyStatus = 'offline';
+      }
+
+      if (chosenBuy) {
+        item.highestBuyPrice = chosenBuy.platinum;
+        item.buyBuyer = chosenBuy.userName;
+        const standingRatio = item.highestBuyPrice / (item.standing / 1000);
+        item.buyRatio = Math.round(standingRatio * 100) / 100;
+      }
+
+      item.updatedAt = Date.now();
+    }
+
+    /* Render Data Table */
+    function renderTable() {
+      const items = STATE.syndicateItems[STATE.currentSyndicate] || [];
+      const tbody = document.getElementById('table-body');
+      
+      // Filter items
+      let filtered = items.filter(it => {
+        if (STATE.activeFilter === 'augment' && it.type !== 'Augment') return false;
+        if (STATE.activeFilter === 'weapon' && it.type === 'Augment') return false;
+        if (STATE.searchQuery) {
+          const q = STATE.searchQuery.toLowerCase();
+          const matchName = it.name.toLowerCase().includes(q);
+          const matchWf = it.warframe && it.warframe.toLowerCase().includes(q);
+          const matchType = it.type.toLowerCase().includes(q);
+          if (!matchName && !matchWf && !matchType) return false;
+        }
+        return true;
+      });
+
+      // Update Counts
+      document.getElementById('count-all').textContent = items.length;
+      document.getElementById('count-augments').textContent = items.filter(i => i.type === 'Augment').length;
+      document.getElementById('count-weapons').textContent = items.filter(i => i.type !== 'Augment').length;
+
+      // Sort items
+      filtered.sort((a, b) => {
+        let valA = a[STATE.sortColumn];
+        let valB = b[STATE.sortColumn];
+
+        if (STATE.sortColumn === 'name') {
+          return STATE.sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+        }
+
+        if (STATE.sortColumn === 'sellers') {
+          valA = a.ingameSellers || 0;
+          valB = b.ingameSellers || 0;
+        } else if (STATE.sortColumn === 'buyers') {
+          valA = a.ingameBuyers || 0;
+          valB = b.ingameBuyers || 0;
+        } else {
+          valA = (valA != null) ? valA : -1;
+          valB = (valB != null) ? valB : -1;
+        }
+
+        if (valA === valB) return 0;
+        return STATE.sortAsc ? (valA > valB ? 1 : -1) : (valA < valB ? 1 : -1);
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="11" style="text-align: center; padding: 3rem 1rem; color: var(--text-dim);">
+              No items match your search or filter criteria.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      const isSellMode = STATE.currentViewMode === 'sell';
+      const isBuyMode = STATE.currentViewMode === 'buy';
+
+      // Update Column Visibility
+      document.querySelectorAll('.view-sell-col').forEach(el => {
+        el.style.display = (isBuyMode) ? 'none' : '';
+      });
+      document.querySelectorAll('.view-buy-col').forEach(el => {
+        el.style.display = (isSellMode) ? 'none' : '';
+      });
+
+      let html = '';
+      filtered.forEach((item, index) => {
+        const sellRatioClass = (item.sellRatio >= 0.55) ? 'top-tier' : (item.sellRatio >= 0.45 ? 'mid-tier' : '');
+        const buyRatioClass = (item.buyRatio >= 0.45) ? 'top-tier' : (item.buyRatio >= 0.35 ? 'mid-tier' : '');
+
+        html += `
+          <tr>
+            <td class="col-rank">${index + 1}</td>
+            <td class="col-item">
+              <div class="item-name-wrap">
+                <span class="item-title">${escapeHtml(item.name)}</span>
+                <div class="item-meta">
+                  ${item.warframe ? `<span>[${escapeHtml(item.warframe)}]</span>` : ''}
+                  <span class="type-tag ${item.type !== 'Augment' ? 'weapon' : ''}">${escapeHtml(item.type)}</span>
+                </div>
+              </div>
+            </td>
+            <td><span class="type-tag ${item.type !== 'Augment' ? 'weapon' : ''}">${escapeHtml(item.type)}</span></td>
+            <td class="mono-cell">${item.standing.toLocaleString()}</td>
+            
+            <!-- Sell Listing Info -->
+            <td class="mono-cell view-sell-col">
+              ${item.lowestSellPrice != null ? `
+                <span class="plat-val">
+                  <svg class="plat-icon" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                  ${item.lowestSellPrice}
+                </span>
+              ` : '<span style="color: var(--text-dim)">—</span>'}
+            </td>
+            <td class="view-sell-col">
+              ${item.sellRatio != null ? `
+                <span class="ratio-badge ${sellRatioClass}">
+                  ${item.sellRatio.toFixed(2)}
+                </span>
+              ` : '<span style="color: var(--text-dim)">—</span>'}
+            </td>
+            <td class="view-sell-col">
+              <div class="sellers-count">
+                <span class="seller-dot ${item.ingameSellers > 0 ? '' : 'offline'}"></span>
+                <span>${item.ingameSellers} ingame</span>
+                <span style="opacity: 0.5">(${item.onlineSellers} on)</span>
+              </div>
+            </td>
+
+            <!-- Instant Buyout Info -->
+            <td class="mono-cell view-buy-col">
+              ${item.highestBuyPrice != null ? `
+                <span class="plat-val" style="color: var(--cyan-primary)">
+                  <svg class="plat-icon" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                  ${item.highestBuyPrice}
+                </span>
+              ` : '<span style="color: var(--text-dim)">—</span>'}
+            </td>
+            <td class="view-buy-col">
+              ${item.buyRatio != null ? `
+                <span class="ratio-badge ${buyRatioClass}">
+                  ${item.buyRatio.toFixed(2)}
+                </span>
+              ` : '<span style="color: var(--text-dim)">—</span>'}
+            </td>
+            <td class="view-buy-col">
+              <div class="sellers-count">
+                <span class="seller-dot ${item.ingameBuyers > 0 ? '' : 'offline'}"></span>
+                <span>${item.ingameBuyers} buyers</span>
+              </div>
+            </td>
+
+            <!-- Actions -->
+            <td>
+              <div class="action-group">
+                ${item.lowestSellPrice != null && item.sellSeller ? `
+                  <button class="btn-copy" onclick="copyBuyWhisper('${escapeAttr(item.sellSeller)}', '${escapeAttr(item.name)}', ${item.lowestSellPrice}, this)" title="Copy buy whisper for in-game chat">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <span>Whisper Buy</span>
+                  </button>
+                ` : ''}
+
+                ${item.highestBuyPrice != null && item.buyBuyer ? `
+                  <button class="btn-copy btn-instant-sell" onclick="copySellWhisper('${escapeAttr(item.buyBuyer)}', '${escapeAttr(item.name)}', ${item.highestBuyPrice}, this)" title="Instantly sell to waiting buyer">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+                    <span>Instant Sell</span>
+                  </button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    /* Update Summary Metric Cards */
+    function updateSummaryMetrics() {
+      const items = STATE.syndicateItems[STATE.currentSyndicate] || [];
+      if (items.length === 0) return;
+
+      // Best Sell Ratio
+      const withSell = items.filter(it => it.sellRatio != null && it.lowestSellPrice != null);
+      if (withSell.length > 0) {
+        withSell.sort((a, b) => b.sellRatio - a.sellRatio);
+        const topSell = withSell[0];
+        document.getElementById('metric-top-sell-ratio').textContent = `${topSell.sellRatio.toFixed(2)}`;
+        document.getElementById('metric-top-sell-name').textContent = `${topSell.name} (${topSell.lowestSellPrice}p)`;
+      } else {
+        document.getElementById('metric-top-sell-ratio').textContent = '--';
+        document.getElementById('metric-top-sell-name').textContent = 'No orders scanned';
+      }
+
+      // Best Buy Ratio
+      const withBuy = items.filter(it => it.buyRatio != null && it.highestBuyPrice != null);
+      if (withBuy.length > 0) {
+        withBuy.sort((a, b) => b.buyRatio - a.buyRatio);
+        const topBuy = withBuy[0];
+        document.getElementById('metric-top-buy-ratio').textContent = `${topBuy.buyRatio.toFixed(2)}`;
+        document.getElementById('metric-top-buy-name').textContent = `${topBuy.name} (${topBuy.highestBuyPrice}p)`;
+      } else {
+        document.getElementById('metric-top-buy-ratio').textContent = '--';
+        document.getElementById('metric-top-buy-name').textContent = 'No instant buyers';
+      }
+
+      // Syndicate Average Sell Ratio
+      if (withSell.length > 0) {
+        const sum = withSell.reduce((acc, it) => acc + it.sellRatio, 0);
+        const avg = sum / withSell.length;
+        document.getElementById('metric-avg-ratio').textContent = `${avg.toFixed(2)}`;
+      } else {
+        document.getElementById('metric-avg-ratio').textContent = '--';
+      }
+
+      // Active Sellers Total
+      const totalSellers = items.reduce((acc, it) => acc + (it.ingameSellers || 0), 0);
+      document.getElementById('metric-sellers-count').textContent = totalSellers.toLocaleString();
+    }
+
+    /* Whisper Clipboard Handlers */
+    window.copyBuyWhisper = function(sellerName, itemName, price, btnEl) {
+      // User requested format: "Hello, I'd like to buy {item_name} for {price} platinum."
+      // We prepend with "/w {seller_name} " for Warframe in-game chat compatibility
+      const message = `/w ${sellerName} Hello, I'd like to buy ${itemName} for ${price} platinum.`;
+      copyToClipboard(message, btnEl);
+    };
+
+    window.copySellWhisper = function(buyerName, itemName, price, btnEl) {
+      const message = `/w ${buyerName} Hello, I'd like to sell ${itemName} for ${price} platinum.`;
+      copyToClipboard(message, btnEl);
+    };
+
+    function copyToClipboard(text, btnEl) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showCopySuccess(btnEl);
+        }).catch(() => fallbackCopy(text, btnEl));
+      } else {
+        fallbackCopy(text, btnEl);
+      }
+    }
+
+    function fallbackCopy(text, btnEl) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showCopySuccess(btnEl);
+      } catch (err) {
+        showToast('Failed to copy to clipboard');
+      }
+      document.body.removeChild(ta);
+    }
+
+    function showCopySuccess(btnEl) {
+      if (!btnEl) return;
+      const origHtml = btnEl.innerHTML;
+      btnEl.classList.add('copied');
+      btnEl.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span>Copied!</span>
+      `;
+      showToast('Whisper copied to clipboard!');
+      setTimeout(() => {
+        btnEl.classList.remove('copied');
+        btnEl.innerHTML = origHtml;
+      }, 1800);
+    }
+
+    /* Toast Notification */
+    function showToast(message) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--gold-primary)"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        <span>${escapeHtml(message)}</span>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.transition = 'opacity 0.3s ease';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 2500);
+    }
+
+    /* Live Countdown Timer & Auto-Refresh */
+    function startCountdownTimer(cacheTimestamp) {
+      if (STATE.countdownInterval) {
+        clearInterval(STATE.countdownInterval);
+      }
+
+      const ttlMs = STATE.settings.ttlMinutes * 60 * 1000;
+      const expiry = cacheTimestamp + ttlMs;
+
+      function tick() {
+        const remaining = expiry - Date.now();
+        const timerEl = document.getElementById('status-timer');
+
+        if (remaining <= 0) {
+          timerEl.textContent = 'Refreshing...';
+          clearInterval(STATE.countdownInterval);
+
+          // Only trigger auto-refresh if tab is active
+          if (!document.hidden && !STATE.scanInProgress) {
+            startScan(STATE.currentSyndicate);
+          }
+          return;
+        }
+
+        const mins = Math.floor(remaining / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        timerEl.textContent = `Refreshes in ${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      }
+
+      tick();
+      STATE.countdownInterval = setInterval(tick, 1000);
+    }
+
+    // Refresh when tab becomes visible if expired
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && !STATE.scanInProgress) {
+        const cached = getCachedSyndicateData(STATE.currentSyndicate);
+        if (!cached) {
+          startScan(STATE.currentSyndicate);
+        }
+      }
+    });
+
+    /* Progress & Status Helpers */
+    function updateProgressBar(current, total) {
+      const bar = document.getElementById('progress-bar');
+      const pct = total > 0 ? (current / total) * 100 : 0;
+      bar.style.width = `${pct}%`;
+      bar.classList.toggle('active', current < total && STATE.scanInProgress);
+    }
+
+    function setStatus(text, isBusy) {
+      document.getElementById('status-text').textContent = text;
+    }
+
+    function setApiBadge(text, isScanning) {
+      document.getElementById('api-status-text').textContent = text;
+      const dot = document.getElementById('api-status-dot');
+      dot.className = `badge-dot ${isScanning ? 'scanning' : ''}`;
+    }
+
+    function formatTimeAgo(timestamp) {
+      const diffSecs = Math.floor((Date.now() - timestamp) / 1000);
+      if (diffSecs < 60) return `${diffSecs}s ago`;
+      const diffMins = Math.floor(diffSecs / 60);
+      return `${diffMins}m ago`;
+    }
+
+    /* Escape HTML */
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttr(str) {
+      if (!str) return '';
+      return String(str).replace(/'/g, "\'");
+    }
+
+    /* Event Listeners */
+    function bindEvents() {
+      // Force Refresh Button
+      document.getElementById('btn-force-refresh').addEventListener('click', () => {
+        try {
+          localStorage.removeItem(getCacheKey(STATE.currentSyndicate));
+        } catch (e) {}
+        startScan(STATE.currentSyndicate);
+      });
+
+      // Search Input
+      document.getElementById('search-input').addEventListener('input', (e) => {
+        STATE.searchQuery = e.target.value.trim();
+        renderTable();
+      });
+
+      // Type Filter Buttons
+      document.querySelectorAll('#type-filters .pill-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('#type-filters .pill-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          STATE.activeFilter = btn.dataset.filter;
+          renderTable();
+        });
+      });
+
+      // View Mode Buttons
+      document.querySelectorAll('.view-modes .view-mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.view-modes .view-mode-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          STATE.currentViewMode = btn.dataset.mode;
+          renderTable();
+        });
+      });
+
+      // Table Header Sorting
+      document.querySelectorAll('#market-table th[data-sort]').forEach(th => {
+        th.addEventListener('click', () => {
+          const col = th.dataset.sort;
+          if (STATE.sortColumn === col) {
+            STATE.sortAsc = !STATE.sortAsc;
+          } else {
+            STATE.sortColumn = col;
+            STATE.sortAsc = (col === 'name');
+          }
+
+          document.querySelectorAll('#market-table th').forEach(h => {
+            h.classList.remove('sorted');
+            const arrow = h.querySelector('.sort-arrow');
+            if (arrow) arrow.textContent = '↕';
+          });
+
+          th.classList.add('sorted');
+          const arrow = th.querySelector('.sort-arrow');
+          if (arrow) arrow.textContent = STATE.sortAsc ? '▲' : '▼';
+
+          renderTable();
+        });
+      });
+
+      // Settings Modal
+      const modal = document.getElementById('settings-modal');
+      document.getElementById('btn-open-settings').addEventListener('click', () => {
+        document.getElementById('setting-ttl').value = STATE.settings.ttlMinutes;
+        document.getElementById('setting-delay').value = STATE.settings.delayMs;
+        document.getElementById('setting-api-version').value = STATE.settings.apiVersion;
+        document.getElementById('setting-cors-proxy').value = STATE.settings.corsMode;
+        document.getElementById('setting-proxy-url').value = STATE.settings.customProxy;
+        document.getElementById('custom-proxy-group').style.display = STATE.settings.corsMode === 'custom' ? 'block' : 'none';
+        modal.classList.add('open');
+      });
+
+      document.getElementById('btn-close-settings').addEventListener('click', () => {
+        modal.classList.remove('open');
+      });
+
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('open');
+      });
+
+      document.getElementById('setting-cors-proxy').addEventListener('change', (e) => {
+        document.getElementById('custom-proxy-group').style.display = e.target.value === 'custom' ? 'block' : 'none';
+      });
+
+      document.getElementById('btn-save-settings').addEventListener('click', () => {
+        STATE.settings.ttlMinutes = parseInt(document.getElementById('setting-ttl').value, 10);
+        STATE.settings.delayMs = parseInt(document.getElementById('setting-delay').value, 10);
+        STATE.settings.apiVersion = document.getElementById('setting-api-version').value;
+        STATE.settings.corsMode = document.getElementById('setting-cors-proxy').value;
+        STATE.settings.customProxy = document.getElementById('setting-proxy-url').value.trim();
+        saveSettings();
+        modal.classList.remove('open');
+        showToast('Settings saved successfully');
+      });
+
+      document.getElementById('btn-clear-all-cache').addEventListener('click', () => {
+        Object.keys(SYNDICATES_DATA).forEach(synId => {
+          try {
+            localStorage.removeItem(getCacheKey(synId));
+          } catch (e) {}
+        });
+        showToast('All syndicate caches cleared');
+        modal.classList.remove('open');
+        switchSyndicate(STATE.currentSyndicate);
+      });
+    }
+
+    /* Initialize Application */
+    function init() {
+      loadSettings();
+      initSyndicateSelector();
+      bindEvents();
+      switchSyndicate(STATE.currentSyndicate);
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
