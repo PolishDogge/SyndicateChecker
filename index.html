@@ -1,3 +1,20 @@
+<!--
+  Warframe Syndicate Standing Optimizer
+  Copyright (C) 2026 polishdogge
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1058,6 +1075,223 @@
       white-space: nowrap;
     }
 
+    /* Platform Selector in Toolbar */
+    .platform-selector-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.35rem 0.65rem;
+      transition: all 0.15s;
+    }
+
+    .platform-selector-wrap:hover {
+      border-color: var(--border-accent);
+    }
+
+    .select-label {
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .platform-select {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .platform-select option {
+      background: var(--bg-card);
+      color: var(--text-main);
+    }
+
+    /* Standing Liquidation Calculator */
+    .calculator-panel {
+      background: linear-gradient(135deg, rgba(17, 22, 34, 0.95), rgba(12, 16, 23, 0.98));
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0.85rem 1.25rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+      border-left: 3px solid var(--gold-primary);
+    }
+
+    .calc-header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .calc-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .calc-icon {
+      width: 17px;
+      height: 17px;
+      stroke: var(--gold-primary);
+    }
+
+    .calc-title {
+      font-size: 0.84rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      color: #fff;
+      text-transform: uppercase;
+    }
+
+    .calc-subtitle {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+    }
+
+    .calc-controls {
+      display: flex;
+      align-items: center;
+      gap: 1.15rem;
+      flex-wrap: wrap;
+    }
+
+    .calc-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .calc-input-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .calc-input-box {
+      display: flex;
+      align-items: center;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.35rem 0.65rem;
+      transition: all 0.15s;
+    }
+
+    .calc-input-box:focus-within {
+      border-color: var(--gold-primary);
+      box-shadow: 0 0 8px var(--gold-glow);
+    }
+
+    .calc-input {
+      background: transparent;
+      border: none;
+      color: var(--gold-light);
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      font-weight: 700;
+      width: 95px;
+      outline: none;
+    }
+
+    .calc-input-unit {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-left: 0.25rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .calc-chips {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+
+    .calc-chip-label {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      font-weight: 600;
+      margin-right: 0.15rem;
+    }
+
+    .preset-chip {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      padding: 0.25rem 0.55rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .preset-chip:hover {
+      background: rgba(197, 160, 89, 0.12);
+      border-color: var(--gold-primary);
+      color: #fff;
+    }
+
+    .preset-chip.active {
+      background: rgba(197, 160, 89, 0.22);
+      border-color: var(--gold-primary);
+      color: var(--gold-light);
+      font-weight: 700;
+      box-shadow: 0 0 6px var(--gold-glow);
+    }
+
+    /* Projections in table cells */
+    .units-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      margin-top: 0.2rem;
+      letter-spacing: 0.02em;
+    }
+
+    .units-badge.affordable {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .units-badge.unaffordable {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-dim);
+      border: 1px solid var(--border-color);
+    }
+
+    .projected-plat {
+      font-size: 0.72rem;
+      font-weight: 600;
+      white-space: nowrap;
+      margin-top: 0.15rem;
+    }
+
+    .projected-plat.buyout {
+      color: var(--cyan-primary);
+    }
+
+    .projected-plat.sell {
+      color: var(--gold-light);
+    }
+
     /* Settings Modal */
     .modal-backdrop {
       position: fixed;
@@ -1329,6 +1563,39 @@
         </div>
       </section>
 
+      <!-- Standing Liquidation Calculator Bar -->
+      <div class="calculator-panel">
+        <div class="calc-header">
+          <div class="calc-title-wrap">
+            <svg class="calc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+              <line x1="8" y1="6" x2="16" y2="6"></line>
+              <line x1="16" y1="14" x2="16" y2="18"></line>
+              <path d="M16 10h.01M12 10h.01M8 10h.01M12 14h.01M8 14h.01M12 18h.01M8 18h.01"></path>
+            </svg>
+            <span class="calc-title">Standing Liquidation Calculator</span>
+          </div>
+          <div class="calc-subtitle">Simulate real cashout volume and projected Platinum yield across items</div>
+        </div>
+        <div class="calc-controls">
+          <div class="calc-input-wrap">
+            <label for="input-available-standing" class="calc-input-label">Available Standing:</label>
+            <div class="calc-input-box">
+              <input type="number" id="input-available-standing" class="calc-input" min="0" step="5000" placeholder="125,000" value="125000">
+              <span class="calc-input-unit">pts</span>
+            </div>
+          </div>
+          <div class="calc-chips" id="standing-preset-chips">
+            <span class="calc-chip-label">Presets:</span>
+            <button type="button" class="preset-chip" data-standing="25000">25,000</button>
+            <button type="button" class="preset-chip" data-standing="50000">50,000</button>
+            <button type="button" class="preset-chip" data-standing="100000">100,000</button>
+            <button type="button" class="preset-chip active" data-standing="125000">125,000</button>
+            <button type="button" class="preset-chip" data-standing="132000" title="Max Daily Cap / MR 30+ Limit">Max (132k)</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Toolbar: Search & Type Filters -->
       <div class="toolbar">
         <div class="search-box">
@@ -1343,6 +1610,17 @@
           <button class="pill-btn" data-filter="warframe-aug">Warframe Augments (<span id="count-warframe-augs">0</span>)</button>
           <button class="pill-btn" data-filter="weapon-aug">Weapon Augments (<span id="count-weapon-augs">0</span>)</button>
           <button class="pill-btn" data-filter="weapon">Weapons (<span id="count-weapons">0</span>)</button>
+        </div>
+
+        <!-- Platform / Crossplay Selector -->
+        <div class="platform-selector-wrap" title="Filter orders by platform">
+          <label for="select-platform" class="select-label">Platform:</label>
+          <select id="select-platform" class="platform-select">
+            <option value="crossplay" selected>Crossplay (PC + Cross-Save)</option>
+            <option value="pc">PC Only</option>
+            <option value="playstation">PlayStation</option>
+            <option value="xbox">Xbox</option>
+          </select>
         </div>
 
         <!-- Atragraph Filter Toggle (Exclude by default) -->
@@ -1412,6 +1690,16 @@
           <option value="false">Include Atragraphs (Show all card subtypes)</option>
         </select>
       </div>
+      <div class="form-group">
+        <label class="form-label" for="setting-platform">Trading Platform</label>
+        <div class="form-desc">Select which platform orders to include in market calculations.</div>
+        <select class="form-select" id="setting-platform">
+          <option value="crossplay" selected>Crossplay (Default - PC &amp; Crossplay enabled)</option>
+          <option value="pc">PC Only</option>
+          <option value="playstation">PlayStation</option>
+          <option value="xbox">Xbox</option>
+        </select>
+      </div>
       <div class="modal-footer">
         <button class="btn" id="btn-clear-all-cache">Clear All Caches</button>
         <button class="btn btn-gold" id="btn-save-settings">Save & Close</button>
@@ -1426,6 +1714,7 @@
     <div class="container">
       <p>Data provided in real-time via <a href="https://warframe.market" target="_blank" rel="noopener">Warframe.Market</a> public API.</p>
       <p style="margin-top: 0.35rem; opacity: 0.7;">Zero-dependency standalone client • Ready for GitHub Pages and local use.</p>
+      <p style="margin-top: 0.35rem; font-size: 0.75rem; opacity: 0.6;">Licensed under the <a href="LICENSE" target="_blank" style="color: inherit; text-decoration: underline;">GNU General Public License v3.0</a></p>
     </div>
   </footer>
 
@@ -1444,10 +1733,14 @@
       sortColumn: 'sellRatio',
       sortAsc: false,
       excludeAtragraphs: true,
+      platform: 'crossplay',
+      availableStanding: 125000,
       settings: {
         ttlMinutes: 15,
         delayMs: 380,
-        excludeAtragraphs: true
+        excludeAtragraphs: true,
+        platform: 'crossplay',
+        availableStanding: 125000
       },
       countdownInterval: null
     };
@@ -1463,6 +1756,14 @@
           if (parsed.excludeAtragraphs !== undefined) {
             STATE.settings.excludeAtragraphs = parsed.excludeAtragraphs !== false;
             STATE.excludeAtragraphs = STATE.settings.excludeAtragraphs;
+          }
+          if (parsed.platform) {
+            STATE.settings.platform = parsed.platform;
+            STATE.platform = parsed.platform;
+          }
+          if (parsed.availableStanding !== undefined) {
+            STATE.settings.availableStanding = parseInt(parsed.availableStanding, 10) || 125000;
+            STATE.availableStanding = STATE.settings.availableStanding;
           }
         }
       } catch (e) {
@@ -1806,21 +2107,42 @@
       // Normalize orders
       const normalized = orders.map(o => {
         const orderType = (o.type || o.order_type || '').toLowerCase();
-        const rank = (o.rank !== undefined) ? o.rank : ((o.mod_rank !== undefined) ? o.mod_rank : 0);
+        const rawRank = (o.rank !== undefined) ? o.rank : ((o.mod_rank !== undefined) ? o.mod_rank : 0);
+        const rank = (typeof rawRank === 'number') ? rawRank : 0;
         const user = o.user || {};
         const userName = user.ingame_name || user.ingameName || null;
         const userStatus = (user.status || 'offline').toLowerCase();
+        const userPlatform = (user.platform || 'pc').toLowerCase();
+        const userCrossplay = user.crossplay === true;
         const platinum = typeof o.platinum === 'number' ? o.platinum : 0;
         const visible = o.visible !== false;
         const subtype = (o.subtype || '').toLowerCase();
         const isAtragraph = subtype.includes('atra');
 
-        return { orderType, rank, userName, userStatus, platinum, visible, subtype, isAtragraph };
+        return { orderType, rank, userName, userStatus, userPlatform, userCrossplay, platinum, visible, subtype, isAtragraph };
       });
 
       item.rawOrders = normalized;
       applyItemMetrics(item);
       item.updatedAt = Date.now();
+    }
+
+    function orderMatchesPlatform(o) {
+      const p = STATE.platform || 'crossplay';
+      if (p === 'crossplay') {
+        // In Crossplay mode, accept orders from PC players as well as players with user.crossplay === true
+        return o.userPlatform === 'pc' || o.userCrossplay === true;
+      }
+      if (p === 'pc') {
+        return o.userPlatform === 'pc';
+      }
+      if (p === 'playstation') {
+        return o.userPlatform === 'ps4' || o.userPlatform === 'playstation';
+      }
+      if (p === 'xbox') {
+        return o.userPlatform === 'xbox';
+      }
+      return true;
     }
 
     function applyItemMetrics(item) {
@@ -1829,11 +2151,24 @@
       const isMod = item.type.includes('Augment');
       const excludeAtragraphs = STATE.excludeAtragraphs !== false;
 
-      // Filter based on visibility, mod rank 0, and atragraph flag
+      // Filter based on visibility, strict rank 0 / unranked, atragraph flag, and platform
       const validOrders = item.rawOrders.filter(o => {
         if (!o.visible) return false;
-        if (isMod && o.rank !== 0) return false;
+
+        // Strict Mod Rank 0 Enforcement (discard any mod orders where rank !== 0 or max rank)
+        if (isMod) {
+          if (o.rank !== 0) return false;
+        } else {
+          // Weapon Unranked Enforcement: weapons with affinity/rank cannot be traded
+          if (o.rank !== 0 && o.rank !== undefined) return false;
+        }
+
+        // Atragraph collector cards exclusion
         if (excludeAtragraphs && o.isAtragraph) return false;
+
+        // Platform / Crossplay filtering
+        if (!orderMatchesPlatform(o)) return false;
+
         return true;
       });
 
@@ -1882,6 +2217,47 @@
         item.sellRatio = null;
         item.sellStatus = 'offline';
       }
+    }
+
+    function setPlatformFilter(platform) {
+      STATE.platform = platform;
+      STATE.settings.platform = platform;
+      saveSettings();
+
+      const sel = document.getElementById('select-platform');
+      if (sel) sel.value = platform;
+      const modalSel = document.getElementById('setting-platform');
+      if (modalSel) modalSel.value = platform;
+
+      if (STATE.currentSyndicate && STATE.syndicateItems[STATE.currentSyndicate]) {
+        STATE.syndicateItems[STATE.currentSyndicate].forEach(it => {
+          if (it.rawOrders) applyItemMetrics(it);
+        });
+        renderTable();
+        updateSummaryMetrics();
+      }
+
+      showToast(`Platform filtered to ${platform === 'crossplay' ? 'Crossplay' : platform.toUpperCase()}`);
+    }
+
+    function setAvailableStanding(amount) {
+      const val = Math.max(0, parseInt(amount, 10) || 0);
+      STATE.availableStanding = val;
+      STATE.settings.availableStanding = val;
+      saveSettings();
+
+      const inputEl = document.getElementById('input-available-standing');
+      if (inputEl && parseInt(inputEl.value, 10) !== val) {
+        inputEl.value = val;
+      }
+
+      document.querySelectorAll('#standing-preset-chips .preset-chip').forEach(chip => {
+        const chipVal = parseInt(chip.dataset.standing, 10);
+        chip.classList.toggle('active', chipVal === val);
+      });
+
+      renderTable();
+      updateSummaryMetrics();
     }
 
     function setAtragraphFilter(exclude) {
@@ -1935,9 +2311,23 @@
       const platIcon = `<svg class="plat-icon" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`;
       const dash = `<span style="color: var(--text-dim)">—</span>`;
 
+      const avail = STATE.availableStanding || 0;
+      const units = item.standing > 0 ? Math.floor(avail / item.standing) : 0;
+
+      // Cell 1: Standing Cost & Affordability
+      cells[1].innerHTML = `
+        <div>${item.standing.toLocaleString()}</div>
+        <div class="units-badge ${units > 0 ? 'affordable' : 'unaffordable'}">
+          ${units > 0 ? `${units}x affordable` : '0 affordable'}
+        </div>
+      `;
+
       // Cell 2: Lowest Sell
       cells[2].innerHTML = item.lowestSellPrice != null
-        ? `<span class="plat-val">${platIcon}${item.lowestSellPrice}</span>`
+        ? `<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem;">
+             <span class="plat-val">${platIcon}${item.lowestSellPrice}</span>
+             ${units > 0 ? `<span class="projected-plat sell" title="${units} units × ${item.lowestSellPrice}p = ${units * item.lowestSellPrice}p">${units}x → <strong>${units * item.lowestSellPrice}p</strong></span>` : ''}
+           </div>`
         : dash;
 
       // Cell 3: Plat / 1k Standing
@@ -1952,6 +2342,7 @@
           <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem;">
             <span class="plat-val" style="color: var(--cyan-primary)">${platIcon}${item.highestBuyPrice}</span>
             ${item.buyRatio != null ? `<span style="font-size: 0.7rem; color: var(--text-dim);">(${item.buyRatio.toFixed(2)} / 1k)</span>` : ''}
+            ${units > 0 ? `<span class="projected-plat buyout" title="${units} units × ${item.highestBuyPrice}p = ${units * item.highestBuyPrice}p">${units}x → <strong>${units * item.highestBuyPrice}p</strong></span>` : ''}
           </div>
         `;
       } else {
@@ -2084,9 +2475,14 @@
         }
 
         const sellRatioClass = (item.sellRatio >= 0.55) ? 'top-tier' : (item.sellRatio >= 0.45 ? 'mid-tier' : '');
+        const avail = STATE.availableStanding || 0;
+        const units = item.standing > 0 ? Math.floor(avail / item.standing) : 0;
 
         const lowestCell = item.lowestSellPrice != null
-          ? `<span class="plat-val">${platIcon}${item.lowestSellPrice}</span>`
+          ? `<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem;">
+               <span class="plat-val">${platIcon}${item.lowestSellPrice}</span>
+               ${units > 0 ? `<span class="projected-plat sell" title="${units} units × ${item.lowestSellPrice}p = ${units * item.lowestSellPrice}p">${units}x → <strong>${units * item.lowestSellPrice}p</strong></span>` : ''}
+             </div>`
           : dash;
 
         const sellRatioCell = item.sellRatio != null
@@ -2099,6 +2495,7 @@
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem;">
               <span class="plat-val" style="color: var(--cyan-primary)">${platIcon}${item.highestBuyPrice}</span>
               ${item.buyRatio != null ? `<span style="font-size: 0.7rem; color: var(--text-dim);">(${item.buyRatio.toFixed(2)} / 1k)</span>` : ''}
+              ${units > 0 ? `<span class="projected-plat buyout" title="${units} units × ${item.highestBuyPrice}p = ${units * item.highestBuyPrice}p">${units}x → <strong>${units * item.highestBuyPrice}p</strong></span>` : ''}
             </div>
           `;
         }
@@ -2131,7 +2528,10 @@
               </div>
             </td>
             <td class="mono-cell align-center">
-              ${item.standing.toLocaleString()}
+              <div>${item.standing.toLocaleString()}</div>
+              <div class="units-badge ${units > 0 ? 'affordable' : 'unaffordable'}">
+                ${units > 0 ? `${units}x affordable` : '0 affordable'}
+              </div>
             </td>
             <td class="mono-cell align-right">
               ${lowestCell}
@@ -2168,7 +2568,18 @@
         withBuy.sort((a, b) => b.buyRatio - a.buyRatio);
         const topBuy = withBuy[0];
         document.getElementById('metric-top-buy-ratio').textContent = topBuy.buyRatio.toFixed(2);
-        document.getElementById('metric-top-buy-name').textContent = `${topBuy.name} (${topBuy.highestBuyPrice}p)`;
+
+        const avail = STATE.availableStanding || 0;
+        const topBuyUnits = topBuy.standing > 0 ? Math.floor(avail / topBuy.standing) : 0;
+        const topBuyTotalPlat = topBuyUnits * topBuy.highestBuyPrice;
+
+        if (avail > 0 && topBuyUnits > 0) {
+          document.getElementById('metric-top-buy-name').textContent = `${topBuy.name} • ${topBuyTotalPlat}p total (${topBuyUnits}x @ ${topBuy.highestBuyPrice}p)`;
+        } else if (avail > 0 && topBuyUnits === 0) {
+          document.getElementById('metric-top-buy-name').textContent = `${topBuy.name} (${topBuy.highestBuyPrice}p) • Need ${(topBuy.standing - avail).toLocaleString()} more standing`;
+        } else {
+          document.getElementById('metric-top-buy-name').textContent = `${topBuy.name} (${topBuy.highestBuyPrice}p)`;
+        }
       } else {
         document.getElementById('metric-top-buy-ratio').textContent = '--';
         document.getElementById('metric-top-buy-name').textContent = STATE.scanInProgress ? 'Scanning buyers...' : 'No instant buyers found';
@@ -2180,7 +2591,16 @@
         withSell.sort((a, b) => b.sellRatio - a.sellRatio);
         const topSell = withSell[0];
         document.getElementById('metric-top-sell-ratio').textContent = topSell.sellRatio.toFixed(2);
-        document.getElementById('metric-top-sell-name').textContent = `${topSell.name} (${topSell.lowestSellPrice}p)`;
+
+        const avail = STATE.availableStanding || 0;
+        const topSellUnits = topSell.standing > 0 ? Math.floor(avail / topSell.standing) : 0;
+        const topSellTotalPlat = topSellUnits * topSell.lowestSellPrice;
+
+        if (avail > 0 && topSellUnits > 0) {
+          document.getElementById('metric-top-sell-name').textContent = `${topSell.name} • ${topSellTotalPlat}p total (${topSellUnits}x @ ${topSell.lowestSellPrice}p)`;
+        } else {
+          document.getElementById('metric-top-sell-name').textContent = `${topSell.name} (${topSell.lowestSellPrice}p)`;
+        }
       } else {
         document.getElementById('metric-top-sell-ratio').textContent = '--';
         document.getElementById('metric-top-sell-name').textContent = STATE.scanInProgress ? 'Scanning offers...' : 'No listings found';
@@ -2423,6 +2843,31 @@
         });
       });
 
+      // Platform Filter (Toolbar)
+      const platSelect = document.getElementById('select-platform');
+      if (platSelect) {
+        platSelect.value = STATE.platform || 'crossplay';
+        platSelect.addEventListener('change', (e) => {
+          setPlatformFilter(e.target.value);
+        });
+      }
+
+      // Standing Liquidation Calculator
+      const standingInput = document.getElementById('input-available-standing');
+      if (standingInput) {
+        standingInput.value = STATE.availableStanding || 125000;
+        standingInput.addEventListener('input', (e) => {
+          setAvailableStanding(e.target.value);
+        });
+      }
+
+      document.querySelectorAll('#standing-preset-chips .preset-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = parseInt(btn.dataset.standing, 10);
+          setAvailableStanding(val);
+        });
+      });
+
       // Atragraph Filter Toggle (Toolbar)
       const atraToggle = document.getElementById('toggle-exclude-atragraphs');
       if (atraToggle) {
@@ -2439,6 +2884,8 @@
         document.getElementById('setting-delay').value = STATE.settings.delayMs;
         const setAtra = document.getElementById('setting-exclude-atragraphs');
         if (setAtra) setAtra.value = String(STATE.settings.excludeAtragraphs !== false);
+        const setPlat = document.getElementById('setting-platform');
+        if (setPlat) setPlat.value = STATE.settings.platform || 'crossplay';
         modal.classList.add('open');
       });
 
@@ -2457,6 +2904,10 @@
         if (setAtra) {
           const excludeVal = setAtra.value === 'true';
           setAtragraphFilter(excludeVal);
+        }
+        const setPlat = document.getElementById('setting-platform');
+        if (setPlat) {
+          setPlatformFilter(setPlat.value);
         } else {
           saveSettings();
         }
@@ -2488,6 +2939,18 @@
       if (atraToggle) {
         atraToggle.checked = STATE.excludeAtragraphs !== false;
       }
+      const platSelect = document.getElementById('select-platform');
+      if (platSelect) {
+        platSelect.value = STATE.platform || 'crossplay';
+      }
+      const standingInput = document.getElementById('input-available-standing');
+      if (standingInput) {
+        standingInput.value = STATE.availableStanding || 125000;
+      }
+      document.querySelectorAll('#standing-preset-chips .preset-chip').forEach(chip => {
+        const chipVal = parseInt(chip.dataset.standing, 10);
+        chip.classList.toggle('active', chipVal === (STATE.availableStanding || 125000));
+      });
       initSyndicateSelector();
       bindEvents();
     }
