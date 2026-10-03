@@ -29,15 +29,16 @@ Ready to deploy directly to **GitHub Pages** or open locally in any browser (`fi
   - `Plat / 1k Standing`: Right-aligned with dynamic Orokin gold/emerald efficiency badges.
   - `Instant Buyout Price`: Right-aligned cyan price for immediate standing liquidation.
   - `Sellers / Live Orders`: Center-aligned badge showing active sellers and online counts (`11 active (20 online)`).
-  - `Actions`: Right-aligned "Whisper Buy" button with fixed min-width to prevent squishing.
+  - `Actions`: Right-aligned "Whisper Instant Sell" button with fixed min-width to prevent squishing.
 - **Fixed Table Layout & Zero Text Wrapping**:
   - Uses fixed table layout with explicit column widths and `white-space: nowrap` on numerical/badge cells to ensure pixel-perfect alignment.
 - **Warframe Market API v2 Engine**:
   - Built natively on the active Warframe Market v2 orders endpoint.
   - Enforced safe rate-limiting (minimum 350ms delay between items) to guarantee zero HTTP 429 errors.
   - 15-minute per-syndicate caching with live countdown ticker and active-tab auto-refresh.
-- **One-Click In-Game Whisper**:
-  - Generates: `/w {seller_name} Hello, I'd like to buy {item_name} for {price} platinum.`
+  - Real-time extraction of live in-game buyer usernames with strict prioritization (`ingame` > `online`). No mock data.
+- **One-Click In-Game Instant Sell Whisper**:
+  - Generates: `/w {buyer_ingame_name} Hello! I'd like to sell: [{Item Name}] for {highest_buy_plat} platinum.`
   - Instant clipboard copy with visual "Copied!" checkmark feedback.
 
 ---
