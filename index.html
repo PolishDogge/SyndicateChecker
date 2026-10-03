@@ -1582,8 +1582,11 @@
               await new Promise(r => setTimeout(r, 3000));
               if (sessionId !== STATE.scanSessionId) return;
               retries++;
+            } else if (err.isCors || (err.message && (err.message.includes('NetworkError') || err.message.includes('Cross-Origin')))) {
+              console.warn(`[WF API] CORS error fetching ${item.slug}:`, err);
+              showErrorBanner(`<strong>Cross-Origin Request Blocked (CORS):</strong> Browser blocked direct connection to Warframe.market. Run <code>npm start</code> or <code>python server.py</code> in this folder to launch without CORS restrictions!`);
+              break;
             } else {
-              // Network or CORS failure
               console.warn(`[WF API] Error fetching ${item.slug}:`, err);
               showErrorBanner(`<strong>Network or CORS error connecting to Warframe.market.</strong> Requests to the API are failing (${escapeHtml(err.message || 'check internet connection or CORS policy')}).`);
               break;
@@ -1625,23 +1628,53 @@
       showToast(`Scan complete for ${syn.name}`);
     }
 
-    /* ═══ API Fetcher with Explicit Status Checks ═════════════════════════════ */
+    /* ═══ API Fetcher with Local Proxy & CORS Support ═════════════════════════ */
     async function fetchOrdersForItem(slug) {
-      const url = `https://api.warframe.market/v2/orders/item/${slug}`;
-      const headers = { 'Accept': 'application/json' };
+      const endpoints = [];
 
-      const resp = await fetch(url, { headers });
-      if (resp.status === 429) {
-        const err = new Error('Rate limit exceeded');
-        err.status = 429;
-        throw err;
+      // 1. Same-origin local proxy route (when served from node/python server)
+      const isHttp = (typeof window !== 'undefined' && window.location && typeof window.location.protocol === 'string' && window.location.protocol.startsWith('http'));
+      if (isHttp) {
+        endpoints.push(`/api/orders/${encodeURIComponent(slug)}`);
       }
-      if (!resp.ok) {
-        const err = new Error(`HTTP ${resp.status}`);
-        err.status = resp.status;
-        throw err;
+
+      // 2. Local proxy on port 3000 (when opened via file:/// with local server running)
+      endpoints.push(`http://localhost:3000/api/orders/${encodeURIComponent(slug)}`);
+
+      // 3. Direct warframe.market endpoint (fallback)
+      endpoints.push(`https://api.warframe.market/v2/orders/item/${encodeURIComponent(slug)}`);
+
+      let lastError = null;
+      for (const endpoint of endpoints) {
+        try {
+          const resp = await fetch(endpoint, {
+            headers: { 'Accept': 'application/json' }
+          });
+
+          if (resp.status === 429) {
+            const err = new Error('Warframe.market rate limit hit (HTTP 429)');
+            err.status = 429;
+            throw err;
+          }
+
+          if (!resp.ok) {
+            const err = new Error(`HTTP ${resp.status}`);
+            err.status = resp.status;
+            throw err;
+          }
+
+          return await resp.json();
+        } catch (err) {
+          if (err.status === 429) {
+            throw err;
+          }
+          lastError = err;
+        }
       }
-      return await resp.json();
+
+      const corsErr = new Error('Cross-Origin Request Blocked by browser');
+      corsErr.isCors = true;
+      throw corsErr;
     }
 
     /* ═══ Order Parser & Real Buyer Extraction ════════════════════════════════ */

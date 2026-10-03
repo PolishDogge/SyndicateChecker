@@ -1,0 +1,19 @@
+{
+  "name": "warframe-syndicate-optimizer",
+  "version": "1.0.0",
+  "description": "Live Warframe Market Syndicate standing liquidation and price intelligence dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "warframe",
+    "market",
+    "syndicate",
+    "optimizer",
+    "platinum"
+  ],
+  "author": "",
+  "license": "MIT"
+}

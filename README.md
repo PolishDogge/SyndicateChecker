@@ -47,22 +47,25 @@ Ready to deploy directly to **GitHub Pages** or open locally in any browser (`fi
 
 ---
 
-## 🚀 Quick Start & Deployment
+## 🚀 Quick Start (Zero-CORS Setup)
 
-### Option 1: Open Locally (Fastest)
-Double-click `index.html` or open it directly in any browser (`file:///path/to/index.html`).
+Because browser Same-Origin Policy (SOP) blocks frontend web apps from reading Warframe.market's API responses directly, a zero-dependency local proxy server is included in both Node.js and Python.
 
-Or run a local HTTP server:
+### Option 1: Node.js (Recommended)
 ```bash
-python -m http.server 8080
-# Open http://localhost:8080 in your browser
+npm start
+# or: node server.js
 ```
+Open **[http://localhost:3000](http://localhost:3000)** in your browser. All requests are routed through `/api/orders/:slug` with zero CORS restrictions.
 
-### Option 2: Deploy to GitHub Pages (Free Hosting)
-1. Push this repository to GitHub (or upload `index.html` to a new repo).
-2. Go to repository **Settings** → **Pages**.
-3. Under **Branch**, select `main` (or `master`) and folder `/ (root)`.
-4. Click **Save**. Your app will be live at `https://<username>.github.io/<repo>/` in seconds!
+### Option 2: Python (Zero-Install)
+```bash
+python server.py
+```
+Open **[http://localhost:3000](http://localhost:3000)** in your browser. Built entirely on Python's standard library (`http.server` and `urllib`), zero `pip` packages required.
+
+### Option 3: Deploy Online
+Deploy to Vercel, Render, Railway, or any Node host with `npm start` for an always-accessible web dashboard.
 
 ---
 
