@@ -740,17 +740,18 @@
       table-layout: fixed;
       border-collapse: collapse;
       font-size: 0.85rem;
-      min-width: 1020px;
+      min-width: 1080px;
     }
 
     /* Column Widths (Sum = 100%) */
-    th.col-item-name { width: 28%; text-align: left; }
+    th.col-item-name { width: 24%; text-align: left; }
     th.col-standing  { width: 10%; text-align: center; }
     th.col-lowest    { width: 10%; text-align: right; }
-    th.col-ratio     { width: 12%; text-align: right; }
-    th.col-buyout    { width: 13%; text-align: right; }
-    th.col-sellers   { width: 13%; text-align: center; }
-    th.col-actions   { width: 14%; text-align: right; }
+    th.col-ratio     { width: 11%; text-align: right; }
+    th.col-sales     { width: 11%; text-align: center; }
+    th.col-buyout    { width: 11%; text-align: right; }
+    th.col-sellers   { width: 11%; text-align: center; }
+    th.col-actions   { width: 12%; text-align: right; }
 
     th {
       background: rgba(12, 16, 24, 0.85);
@@ -918,6 +919,54 @@
       background: rgba(16, 185, 129, 0.1);
       border-color: rgba(16, 185, 129, 0.3);
       color: #34d399;
+    }
+
+    /* 24h Sales Velocity Badge */
+    .velocity-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      font-size: 0.76rem;
+      font-weight: 700;
+      padding: 0.22rem 0.6rem;
+      border-radius: 6px;
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+    }
+
+    .velocity-badge.high {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.18);
+    }
+
+    .velocity-badge.med {
+      background: rgba(0, 210, 255, 0.12);
+      color: #00d2ff;
+      border: 1px solid rgba(0, 210, 255, 0.35);
+    }
+
+    .velocity-badge.low {
+      background: rgba(245, 158, 11, 0.12);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+
+    .velocity-badge.none {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-dim);
+      border: 1px solid var(--border-color);
+    }
+
+    .velocity-subtext {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      white-space: nowrap;
+      margin-top: 0.1rem;
     }
 
     /* Sellers / Live Orders Badge */
@@ -1655,6 +1704,7 @@
               <th data-sort="standing" class="col-standing">Standing Cost <span class="sort-arrow">↕</span></th>
               <th data-sort="sellPrice" class="col-lowest">Lowest Sell <span class="sort-arrow">↕</span></th>
               <th data-sort="sellRatio" class="col-ratio sorted">Plat / 1k Standing <span class="sort-arrow">▼</span></th>
+              <th data-sort="sales24h" class="col-sales">24h Sales <span class="sort-arrow">↕</span></th>
               <th data-sort="buyPrice" class="col-buyout">Instant Buyout <span class="sort-arrow">↕</span></th>
               <th data-sort="sellers" class="col-sellers">Sellers / Live Orders <span class="sort-arrow">↕</span></th>
               <th class="col-actions">Actions</th>
@@ -1976,10 +2026,19 @@
         while (retries <= 2) {
           if (sessionId !== STATE.scanSessionId) return;
           try {
-            const orderData = await fetchOrdersForItem(item.slug);
+            const [orderData, statsData] = await Promise.all([
+              fetchOrdersForItem(item.slug),
+              fetchStatisticsForItem(item.slug).catch(err => {
+                console.warn(`[WF Stats] Failed stats for ${item.slug}:`, err);
+                return null;
+              })
+            ]);
             if (sessionId !== STATE.scanSessionId) return;
 
             parseAndApplyOrders(syndicateId, item.slug, orderData);
+            if (statsData) {
+              parseAndApplyStatistics(syndicateId, item.slug, statsData);
+            }
             item._scanned = true;
             item._loading = false;
 
@@ -2091,6 +2150,129 @@
       const corsErr = new Error('Cross-Origin Request Blocked by browser');
       corsErr.isCors = true;
       throw corsErr;
+    }
+
+    async function fetchStatisticsForItem(slug) {
+      const endpoints = [];
+      const platform = STATE.platform || 'crossplay';
+      const platParam = platform !== 'crossplay' ? `?platform=${encodeURIComponent(platform)}` : '';
+
+      const isHttp = (typeof window !== 'undefined' && window.location && typeof window.location.protocol === 'string' && window.location.protocol.startsWith('http'));
+      if (isHttp) {
+        endpoints.push(`/api/statistics/${encodeURIComponent(slug)}${platParam}`);
+      }
+
+      endpoints.push(`http://localhost:3000/api/statistics/${encodeURIComponent(slug)}${platParam}`);
+      endpoints.push(`https://api.warframe.market/v1/items/${encodeURIComponent(slug)}/statistics`);
+
+      for (const endpoint of endpoints) {
+        try {
+          const headers = { 'Accept': 'application/json' };
+          if (platform && platform !== 'crossplay') {
+            headers['Platform'] = platform;
+          }
+          const resp = await fetch(endpoint, { headers });
+          if (resp.status === 429) {
+            const err = new Error('Warframe.market rate limit hit (HTTP 429)');
+            err.status = 429;
+            throw err;
+          }
+          if (!resp.ok) continue;
+          return await resp.json();
+        } catch (err) {
+          if (err.status === 429) throw err;
+        }
+      }
+      return null;
+    }
+
+    function parseAndApplyStatistics(syndicateId, slug, rawJson) {
+      const itemsList = STATE.syndicateItems[syndicateId];
+      if (!itemsList) return;
+      const item = itemsList.find(i => i.slug === slug);
+      if (!item) return;
+
+      applyStatisticsMetrics(item, rawJson);
+    }
+
+    function applyStatisticsMetrics(item, rawStats) {
+      if (!rawStats || !rawStats.payload) {
+        item.volume24h = item.volume24h !== undefined ? item.volume24h : 0;
+        item.volume24hTotal = item.volume24hTotal !== undefined ? item.volume24hTotal : 0;
+        item.avgPrice24h = item.avgPrice24h !== undefined ? item.avgPrice24h : null;
+        item.lastSoldAgo = item.lastSoldAgo !== undefined ? item.lastSoldAgo : null;
+        item.velocityTier = item.velocityTier !== undefined ? item.velocityTier : 'none';
+        return;
+      }
+
+      const closed = rawStats.payload.statistics_closed || {};
+      const list48 = closed['48hours'] || [];
+      const now = Date.now();
+      const oneDayAgo = now - 24 * 60 * 60 * 1000;
+
+      let volRank0 = 0;
+      let volTotal = 0;
+      let totalPriceVolume = 0;
+      let latestTxTime = null;
+
+      const isMod = item.type && item.type.includes('Augment');
+
+      for (const entry of list48) {
+        const txTime = new Date(entry.datetime).getTime();
+        if (isNaN(txTime)) continue;
+
+        if (latestTxTime === null || txTime > latestTxTime) {
+          latestTxTime = txTime;
+        }
+
+        if (txTime >= oneDayAgo) {
+          const vol = (typeof entry.volume === 'number' && entry.volume > 0) ? entry.volume : 0;
+          volTotal += vol;
+
+          // For augment mods, track Rank 0 specifically (syndicate items are unranked)
+          const isRank0 = (entry.mod_rank === 0 || entry.mod_rank === undefined);
+          if (isRank0 || !isMod) {
+            volRank0 += vol;
+            const price = entry.wa_price || entry.median || entry.avg_price || entry.closed_price || 0;
+            totalPriceVolume += price * vol;
+          }
+        }
+      }
+
+      // For mods, volume24h is rank 0 volume; for weapons, it's total volume
+      item.volume24h = isMod ? volRank0 : volTotal;
+      item.volume24hTotal = volTotal;
+      item.avgPrice24h = (volRank0 > 0 && totalPriceVolume > 0) ? parseFloat((totalPriceVolume / volRank0).toFixed(1)) : null;
+
+      // Relative time of last recorded sale
+      if (latestTxTime) {
+        const diffMs = now - latestTxTime;
+        const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+        if (diffHours < 1) {
+          item.lastSoldAgo = '<1h ago';
+        } else if (diffHours < 24) {
+          item.lastSoldAgo = `${diffHours}h ago`;
+        } else {
+          const diffDays = Math.floor(diffHours / 24);
+          item.lastSoldAgo = `${diffDays}d ago`;
+        }
+      } else {
+        item.lastSoldAgo = null;
+      }
+
+      // Velocity Tier
+      const v = item.volume24h;
+      if (v >= 10) {
+        item.velocityTier = 'high';
+      } else if (v >= 4) {
+        item.velocityTier = 'med';
+      } else if (v >= 1) {
+        item.velocityTier = 'low';
+      } else {
+        item.velocityTier = 'none';
+      }
+
+      item.rawStatistics = rawStats;
     }
 
     /* ═══ Order Parser & Real Buyer Extraction ════════════════════════════════ */
@@ -2366,6 +2548,33 @@
       showToast(STATE.excludeAtragraphs ? 'Atragraph cards excluded (Regular only)' : 'Atragraph cards included');
     }
 
+    function renderSalesCellHtml(item) {
+      if (item.volume24h == null) {
+        return `<span style="color: var(--text-dim)">—</span>`;
+      }
+      const v = item.volume24h;
+      const tier = item.velocityTier || (v >= 10 ? 'high' : (v >= 4 ? 'med' : (v >= 1 ? 'low' : 'none')));
+      const tierLabel = tier === 'high' ? 'High' : (tier === 'med' ? 'Moderate' : (tier === 'low' ? 'Low' : 'None'));
+
+      const subParts = [];
+      if (item.avgPrice24h != null) subParts.push(`avg ${item.avgPrice24h}p`);
+      if (item.lastSoldAgo) subParts.push(item.lastSoldAgo);
+      const subText = subParts.join(' • ');
+
+      const isMod = item.type && item.type.includes('Augment');
+      const modNote = (isMod && item.volume24hTotal > v) ? ` (${item.volume24hTotal} total incl. rank 3)` : '';
+      const tooltip = `${v} sold in last 24h${modNote}.${item.avgPrice24h != null ? ` Avg price: ${item.avgPrice24h}p.` : ''}${item.lastSoldAgo ? ` Last transaction: ${item.lastSoldAgo}.` : ''} Liquidity tier: ${tierLabel}.`;
+
+      return `
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.15rem;" title="${escapeAttr(tooltip)}">
+          <span class="velocity-badge ${tier}">
+            ${v > 0 ? `${v} sold` : '0 sold'}
+          </span>
+          ${subText ? `<span class="velocity-subtext">${escapeHtml(subText)}</span>` : ''}
+        </div>
+      `;
+    }
+
     /* ═══ Live Incremental Table Row DOM Update ════════════════════════════════ */
     function updateItemRow(syndicateId, slug) {
       const tbody = document.getElementById('table-body');
@@ -2383,7 +2592,7 @@
       if (!item) return;
 
       const cells = row.querySelectorAll('td');
-      if (cells.length < 7) {
+      if (cells.length < 8) {
         renderTable();
         return;
       }
@@ -2406,7 +2615,7 @@
       cells[2].innerHTML = item.lowestSellPrice != null
         ? `<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem;">
              <span class="plat-val">${platIcon}${item.lowestSellPrice}</span>
-             ${units > 0 ? `<span class="projected-plat sell" title="${units} units × ${item.lowestSellPrice}p = ${units * item.lowestSellPrice}p">${units}x → <strong>${units * item.lowestSellPrice}p</strong></span>` : ''}
+             ${units > 0 ? `<span class="projected-plat sell" title="${units} units listed × ${item.lowestSellPrice}p = ${units * item.lowestSellPrice}p (market listing)">${units}x → <strong>${units * item.lowestSellPrice}p</strong></span>` : ''}
            </div>`
         : dash;
 
@@ -2416,7 +2625,10 @@
         ? `<span class="ratio-badge ${sellRatioClass}">${item.sellRatio.toFixed(2)}</span>`
         : dash;
 
-      // Cell 4: Instant Buyout
+      // Cell 4: 24h Sales (New)
+      cells[4].innerHTML = renderSalesCellHtml(item);
+
+      // Cell 5: Instant Buyout
       if (item.highestBuyPrice != null) {
         const qs = getQuickSaleMetrics(item, avail);
         let buyoutSubHtml = '';
@@ -2447,7 +2659,7 @@
           }
         }
 
-        cells[4].innerHTML = `
+        cells[5].innerHTML = `
           <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem;">
             <span class="plat-val" style="color: var(--cyan-primary)">${platIcon}${item.highestBuyPrice}</span>
             ${item.buyRatio != null ? `<span style="font-size: 0.7rem; color: var(--text-dim);">(${item.buyRatio.toFixed(2)} / 1k)</span>` : ''}
@@ -2455,21 +2667,21 @@
           </div>
         `;
       } else {
-        cells[4].innerHTML = dash;
+        cells[5].innerHTML = dash;
       }
 
-      // Cell 5: Sellers / Live Orders
+      // Cell 6: Sellers / Live Orders
       const sellersTotal = (item.ingameSellers || 0) + (item.onlineSellers || 0);
-      cells[5].innerHTML = (sellersTotal > 0)
+      cells[6].innerHTML = (sellersTotal > 0)
         ? `<div class="orders-badge">
              <span class="seller-dot ${item.ingameSellers > 0 ? '' : 'offline'}"></span>
              <span>${item.ingameSellers} active (${item.onlineSellers} online)</span>
            </div>`
         : `<span style="color: var(--text-dim); font-size: 0.78rem;">0 active</span>`;
 
-      // Cell 6: Actions (Whisper Instant Sell)
+      // Cell 7: Actions (Whisper Instant Sell)
       if (item.highestBuyPrice != null && item.buyerName) {
-        cells[6].innerHTML = `
+        cells[7].innerHTML = `
           <div class="action-btn-wrap">
             <button class="btn-whisper" onclick="copyInstantSellWhisper('${escapeAttr(item.slug)}', this)" title="Instantly sell to ${escapeHtml(item.buyerName)} for ${item.highestBuyPrice} plat">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
@@ -2478,7 +2690,7 @@
           </div>
         `;
       } else {
-        cells[6].innerHTML = `
+        cells[7].innerHTML = `
           <div class="action-btn-wrap">
             <button class="btn-whisper disabled" disabled title="No active buyer online/in-game">
               <span>No active buyer</span>
@@ -2536,6 +2748,9 @@
         } else if (STATE.sortColumn === 'buyPrice') {
           valA = a.highestBuyPrice;
           valB = b.highestBuyPrice;
+        } else if (STATE.sortColumn === 'sales24h') {
+          valA = a.volume24h != null ? a.volume24h : -1;
+          valB = b.volume24h != null ? b.volume24h : -1;
         } else if (STATE.sortColumn === 'sellers') {
           valA = (a.ingameSellers || 0) + (a.onlineSellers || 0);
           valB = (b.ingameSellers || 0) + (b.onlineSellers || 0);
@@ -2550,6 +2765,9 @@
         if (valB == null) return -1;
 
         if (valA === valB) {
+          if (STATE.sortColumn === 'sales24h' && a.volume24hTotal !== b.volume24hTotal) {
+            return (b.volume24hTotal || 0) - (a.volume24hTotal || 0);
+          }
           if (STATE.sortColumn === 'buyPrice' && a.buyRatio !== b.buyRatio && a.buyRatio != null && b.buyRatio != null) {
             return b.buyRatio - a.buyRatio;
           }
@@ -2561,7 +2779,7 @@
       if (filtered.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="7" style="text-align: center; padding: 3rem 1rem; color: var(--text-dim);">
+            <td colspan="8" style="text-align: center; padding: 3rem 1rem; color: var(--text-dim);">
               No items match your search or filter criteria.
             </td>
           </tr>
@@ -2590,13 +2808,15 @@
         const lowestCell = item.lowestSellPrice != null
           ? `<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem;">
                <span class="plat-val">${platIcon}${item.lowestSellPrice}</span>
-               ${units > 0 ? `<span class="projected-plat sell" title="${units} units × ${item.lowestSellPrice}p = ${units * item.lowestSellPrice}p">${units}x → <strong>${units * item.lowestSellPrice}p</strong></span>` : ''}
+               ${units > 0 ? `<span class="projected-plat sell" title="${units} units listed × ${item.lowestSellPrice}p = ${units * item.lowestSellPrice}p (market listing)">${units}x → <strong>${units * item.lowestSellPrice}p</strong></span>` : ''}
              </div>`
           : dash;
 
         const sellRatioCell = item.sellRatio != null
           ? `<span class="ratio-badge ${sellRatioClass}">${item.sellRatio.toFixed(2)}</span>`
           : dash;
+
+        const salesCell = renderSalesCellHtml(item);
 
         let buyoutCell = dash;
         if (item.highestBuyPrice != null) {
@@ -2676,6 +2896,9 @@
             </td>
             <td class="align-right">
               ${sellRatioCell}
+            </td>
+            <td class="align-center">
+              ${salesCell}
             </td>
             <td class="mono-cell align-right">
               ${buyoutCell}
@@ -2760,9 +2983,16 @@
         document.getElementById('metric-avg-ratio').textContent = '--';
       }
 
-      // 4. Active Sellers Found: Total count of active sellers across all scanned items
+      // 4. Active Sellers Found & Syndicate Sales Volume
       const totalSellers = items.reduce((acc, it) => acc + (it.ingameSellers || 0) + (it.onlineSellers || 0), 0);
+      const totalVolume24h = items.reduce((acc, it) => acc + (it.volume24h || 0), 0);
       document.getElementById('metric-sellers-count').textContent = totalSellers.toLocaleString();
+      const sellersSub = document.getElementById('metric-sellers-sub');
+      if (sellersSub) {
+        sellersSub.textContent = totalVolume24h > 0
+          ? `${totalVolume24h} sold in 24h`
+          : 'In-game & online traders';
+      }
     }
 
     /* ═══ Whisper Instant Sell Clipboard Handler ═══════════════════════════════ */

@@ -55,13 +55,19 @@ class SyndicateHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(b'{"error": "Item slug is required"}')
                 return
 
+            platform = self.headers.get('Platform', 'pc').lower()
+            query_params = urllib.parse.parse_qs(parsed.query)
+            if 'platform' in query_params and query_params['platform']:
+                platform = query_params['platform'][0].lower()
+
+            cache_key = f"orders:{platform}:{slug}"
             now = time.time()
-            if slug in CACHE and (now - CACHE[slug]['time'] < CACHE_TTL):
+            if cache_key in CACHE and (now - CACHE[cache_key]['time'] < CACHE_TTL):
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.send_header('X-Proxy-Cache', 'HIT')
                 self.end_headers()
-                self.wfile.write(CACHE[slug]['data'])
+                self.wfile.write(CACHE[cache_key]['data'])
                 return
 
             target_url = f"https://api.warframe.market/v2/orders/item/{urllib.parse.quote(slug)}"
@@ -69,7 +75,7 @@ class SyndicateHandler(http.server.SimpleHTTPRequestHandler):
                 target_url,
                 headers={
                     'Accept': 'application/json',
-                    'Platform': 'pc',
+                    'Platform': platform,
                     'Language': 'en',
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
                 }
@@ -78,7 +84,7 @@ class SyndicateHandler(http.server.SimpleHTTPRequestHandler):
             try:
                 with urllib.request.urlopen(req, timeout=10) as resp:
                     data = resp.read()
-                    CACHE[slug] = {'time': now, 'data': data}
+                    CACHE[cache_key] = {'time': now, 'data': data}
                     self.send_response(200)
                     self.send_header('Content-Type', 'application/json')
                     self.send_header('X-Proxy-Cache', 'MISS')
@@ -97,7 +103,66 @@ class SyndicateHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({'error': 'Failed to reach Warframe.market', 'details': str(e)}).encode('utf-8'))
             return
 
-        # 2. Clear Cache Route: /api/clear-cache
+        # 2. API Proxy Route: /api/statistics/:slug
+        if path.startswith('/api/statistics/') or path.startswith('/api/stats/'):
+            prefix = '/api/statistics/' if path.startswith('/api/statistics/') else '/api/stats/'
+            slug = path[len(prefix):].strip()
+            if not slug:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(b'{"error": "Item slug is required"}')
+                return
+
+            platform = self.headers.get('Platform', 'pc').lower()
+            query_params = urllib.parse.parse_qs(parsed.query)
+            if 'platform' in query_params and query_params['platform']:
+                platform = query_params['platform'][0].lower()
+
+            cache_key = f"stats:{platform}:{slug}"
+            now = time.time()
+            if cache_key in CACHE and (now - CACHE[cache_key]['time'] < CACHE_TTL):
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('X-Proxy-Cache', 'HIT')
+                self.end_headers()
+                self.wfile.write(CACHE[cache_key]['data'])
+                return
+
+            target_url = f"https://api.warframe.market/v1/items/{urllib.parse.quote(slug)}/statistics"
+            req = urllib.request.Request(
+                target_url,
+                headers={
+                    'Accept': 'application/json',
+                    'Platform': platform,
+                    'Language': 'en',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                }
+            )
+
+            try:
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    data = resp.read()
+                    CACHE[cache_key] = {'time': now, 'data': data}
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.send_header('X-Proxy-Cache', 'MISS')
+                    self.end_headers()
+                    self.wfile.write(data)
+            except urllib.error.HTTPError as e:
+                err_body = e.read()
+                self.send_response(e.code)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(err_body if err_body else json.dumps({'error': f'HTTP {e.code}'}).encode('utf-8'))
+            except Exception as e:
+                self.send_response(502)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({'error': 'Failed to reach Warframe.market statistics', 'details': str(e)}).encode('utf-8'))
+            return
+
+        # 3. Clear Cache Route: /api/clear-cache
         if path == '/api/clear-cache':
             CACHE.clear()
             self.send_response(200)

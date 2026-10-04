@@ -70,6 +70,18 @@ Open `http://localhost:3000` in your web browser.
   ```
 - Automatically disables with "No active buyer" when no qualifying buyers are online.
 
+### 24-Hour Sales Velocity & Liquidity Tracking
+- Fetches confirmed transaction history from Warframe.market's closed statistics endpoint (`/v1/items/:slug/statistics`).
+- Calculates units sold and volume-weighted average price over a rolling 24-hour window.
+- Distinguishes unranked (Rank 0) transactions from max-rank (Rank 3) mod sales, ensuring liquidity metrics reflect Syndicate standing items accurately.
+- Categorizes sales velocity into clear liquidity tiers:
+  - High (10+ sold / 24h): High turnover, fastest liquidating items.
+  - Moderate (4 - 9 sold / 24h): Consistent daily demand.
+  - Low (1 - 3 sold / 24h): Slower moving offerings.
+  - None (0 sold / 24h): Items with zero recorded sales in the last 24 hours.
+- Interactive column sorting by 24h sales volume allows one-click identification of the most liquid offerings.
+- Detailed hover tooltips display total volume (including max rank), volume-weighted average price, and elapsed time since the latest confirmed sale.
+
 ### Warframe 1999 Atragraph Card Filter
 - Filters out signed collector editions (`subtype: atragraph`) by default so displayed values reflect standard rank 0 reward cards.
 - Can be toggled on or off from the toolbar and settings panel.
@@ -90,9 +102,13 @@ Access the settings panel via the gear icon in the top header:
 ## Technical Specifications
 
 - Frontend: Single-file static HTML5/CSS3/ES6+ with zero external frameworks or CDNs.
-- API Integration: Warframe.market API v1 and v2 order books.
+- API Integration: Warframe.market API v2 order books (`/v2/orders/item/:slug`) and v1 closed transaction statistics (`/v1/items/:slug/statistics`).
+- Local Proxy Architecture:
+  - `/api/orders/:slug`: Proxies live order books with dynamic platform header forwarding and 15-minute in-memory caching.
+  - `/api/statistics/:slug`: Proxies completed transaction data with dynamic platform header forwarding and 15-minute in-memory caching.
+  - `/api/clear-cache`: Clears proxy cache in memory.
 - Rate Limiting: Throttled sequential queue (380ms delay) with automatic HTTP 429 interception and backoff recovery.
-- Local Storage: Persists user preferences, available standing, and cached market orders across sessions.
+- Local Storage: Persists user preferences, available standing, and cached market data across sessions.
 - License: GNU General Public License v3.0 (GPLv3).
 
 ---
